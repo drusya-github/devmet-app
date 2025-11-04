@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "devmetrics": {
+      "command": "node",
+      "args": [
+        "/Users/chandradrusya/Desktop/devmet-app/mcp-server/dist/index.js"
+      ],
+      "env": {
+        "DEVMETRICS_API_URL": "http://localhost:3001/api",
+        "DEVMETRICS_API_KEY": "",
+        "DEVMETRICS_AUTH_TOKEN": ""
+      }
+    }
+  }
+}
+

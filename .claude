@@ -1,0 +1,172 @@
+# DevMetrics - Claude Configuration
+
+## Project Context
+DevMetrics is a developer metrics and analytics platform with GitHub integration, real-time features, and AI-powered insights.
+
+## Tech Stack
+- **Backend**: Fastify, TypeScript, Prisma ORM, PostgreSQL, Redis, Socket.io
+- **Frontend**: React (planned), TypeScript
+- **AI**: Anthropic Claude API
+- **Auth**: GitHub OAuth, JWT
+- **Infrastructure**: Bull (job queues), Winston (logging), MCP Server
+
+## Common Commands
+
+### Development
+```bash
+# Start API server (from apps/api)
+npm run dev
+
+# Start database services
+brew services start postgresql@15
+brew services start redis
+
+# Check service status
+brew services list
+
+# Database migrations
+npx prisma migrate dev --name <migration_name>
+npx prisma generate
+npx prisma studio  # DB GUI
+
+# Test database connection
+npx ts-node -e "import { PrismaClient } from '@prisma/client'; const prisma = new PrismaClient(); prisma.\$connect().then(() => console.log('✓ Connected')).catch(e => console.error('✗ Failed:', e)).finally(() => prisma.\$disconnect());"
+```
+
+### Testing
+```bash
+# Run tests
+npm test
+
+# Test API health
+curl http://localhost:3001/health
+
+# Test Redis
+redis-cli ping
+
+# Test PostgreSQL
+psql -U devmetrics_user -d devmetrics -h localhost
+```
+
+### Debugging
+```bash
+# View API logs
+tail -f logs/combined.log
+
+# Check running processes
+lsof -i :3001  # API port
+lsof -i :3000  # Frontend port
+
+# Redis CLI
+redis-cli
+```
+
+### Environment Setup
+```bash
+# Generate JWT secret
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+# Generate webhook secret
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# Copy env template
+cp .env.example .env
+```
+
+## Project Structure
+```
+devmet-app/
+├── apps/
+│   ├── api/              # Fastify backend API
+│   │   ├── src/
+│   │   │   ├── routes/   # API routes
+│   │   │   ├── services/ # Business logic
+│   │   │   ├── utils/    # Utilities
+│   │   │   └── types/    # TypeScript types
+│   │   ├── prisma/       # Database schema & migrations
+│   │   └── .env          # Environment variables
+│   └── frontend/         # React frontend (TBD)
+├── mcp-server/           # MCP server for AI integration
+├── docs/                 # Documentation
+└── scripts/              # Utility scripts
+```
+
+## Key Files
+- `QUICK_START.md` - 15-minute setup guide
+- `API_SETUP_GUIDE.md` - Detailed backend setup
+- `Backend.md` - Backend architecture
+- `Frontend.md` - Frontend architecture
+- `prime.md` - AI assistant primer
+
+## Coding Standards
+
+### TypeScript
+- Use strict mode
+- Prefer interfaces over types for objects
+- Always define return types for functions
+- Use Zod for runtime validation
+
+### API Routes
+- Follow REST conventions
+- Use Fastify hooks for validation
+- Return consistent error responses
+- Add rate limiting to public endpoints
+
+### Database
+- Always use transactions for multi-step operations
+- Use Prisma relations instead of raw queries
+- Index frequently queried fields
+- Write migrations for all schema changes
+
+### Error Handling
+- Use custom error classes
+- Log errors with Winston
+- Return appropriate HTTP status codes
+- Never expose stack traces in production
+
+## Environment Variables
+```
+NODE_ENV=development
+PORT=3001
+DATABASE_URL=postgresql://devmetrics_user:devpass123@localhost:5432/devmetrics
+REDIS_URL=redis://localhost:6379
+GITHUB_CLIENT_ID=<your_github_client_id>
+GITHUB_CLIENT_SECRET=<your_github_secret>
+JWT_SECRET=<your_jwt_secret>
+ANTHROPIC_API_KEY=<your_anthropic_key>
+FRONTEND_URL=http://localhost:3000
+```
+
+## Quick Tasks
+
+### Add a new API endpoint
+1. Create route in `apps/api/src/routes/`
+2. Add service logic in `apps/api/src/services/`
+3. Define types in `apps/api/src/types/`
+4. Add validation schema using Zod
+5. Update API documentation
+
+### Add database model
+1. Update `apps/api/prisma/schema.prisma`
+2. Run `npx prisma migrate dev --name <description>`
+3. Run `npx prisma generate`
+4. Create service methods
+5. Add type definitions
+
+### Debug issues
+1. Check logs: `tail -f logs/combined.log`
+2. Verify services: `brew services list`
+3. Test connections: Redis (ping), PostgreSQL (psql)
+4. Check environment variables in `.env`
+5. Restart services if needed
+
+## Important Notes
+- Always use absolute paths in configs
+- Never commit `.env` files
+- Database runs on port 5432
+- API runs on port 3001
+- Frontend runs on port 3000
+- Redis runs on port 6379
+- Use TypeScript for all new code
+- Follow existing code patterns
+

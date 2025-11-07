@@ -3,137 +3,251 @@
  * Main entry point for the DevMetrics backend API
  */
 
-import dotenv from 'dotenv';
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
-import { PrismaClient } from '@prisma/client';
-
-// Load environment variables
-dotenv.config();
-
-const PORT = parseInt(process.env.PORT || '3001', 10);
-const HOST = process.env.HOST || '0.0.0.0';
-
-// Initialize Prisma Client
-export const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-});
+import { config } from './config';
+import { logger } from './config/logger';
+import { registerErrorHandler } from './middleware/error-handler';
+import { registerRequestLogger } from './middleware/request-logger';
+import type { HealthCheckResponse, ApiInfoResponse } from './types/server';
+import {
+  connectDatabase,
+  disconnectDatabase,
+  checkDatabaseHealth,
+  connectRedis,
+  disconnectRedis,
+  checkRedisHealth,
+} from './database';
 
 // Initialize Fastify
 const server = fastify({
-  logger: {
-    level: process.env.LOG_LEVEL || 'info',
-    transport: process.env.NODE_ENV === 'development' ? {
-      target: 'pino-pretty',
-      options: {
-        translateTime: 'HH:MM:ss Z',
-        ignore: 'pid,hostname',
-      },
-    } : undefined,
-  },
+  logger: false, // Using Winston instead of Pino
+  trustProxy: true,
+  requestIdHeader: 'x-request-id',
+  requestIdLogLabel: 'requestId',
+  // Disable address logging to prevent macOS network interface error
+  disableRequestLogging: true,
 });
 
-// Register plugins
-async function registerPlugins() {
-  // CORS
+/**
+ * Register all plugins and middleware
+ */
+async function registerPlugins(): Promise<void> {
+  // Request logging (must be first)
+  registerRequestLogger(server);
+
+  // CORS - Allow frontend to access API
   await server.register(cors, {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: config.server.corsOrigin,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   });
 
   // Security headers
-  await server.register(helmet);
-
-  // Rate limiting
-  await server.register(rateLimit, {
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
-    timeWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
+  await server.register(helmet, {
+    contentSecurityPolicy: config.server.nodeEnv === 'production' ? undefined : false,
   });
+
+  // Rate limiting - Prevent abuse
+  await server.register(rateLimit, {
+    max: config.rateLimit.maxRequests,
+    timeWindow: config.rateLimit.timeWindowMs,
+    errorResponseBuilder: (request, context) => ({
+      statusCode: 429,
+      error: 'Too Many Requests',
+      message: `Rate limit exceeded. You can make ${config.rateLimit.maxRequests} requests per ${config.rateLimit.timeWindowMs / 1000} seconds.`,
+      timestamp: new Date().toISOString(),
+    }),
+  });
+
+  // Error handler (must be registered last)
+  registerErrorHandler(server);
+
+  logger.info('All plugins registered successfully');
 }
 
-// Health check route
-server.get('/health', async (request, reply) => {
-  try {
-    // Test database connection
-    await prisma.$queryRaw`SELECT 1`;
-    
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV,
+/**
+ * Register application routes
+ */
+async function registerRoutes(): Promise<void> {
+  // Health check endpoint
+  server.get<{ Reply: HealthCheckResponse }>('/health', async (request, reply) => {
+    try {
+      // Check both database and Redis health
+      const [dbHealth, redisHealth] = await Promise.all([
+        checkDatabaseHealth(),
+        checkRedisHealth(),
+      ]);
+
+      // If either service is unhealthy, return error
+      if (!dbHealth.healthy || !redisHealth.healthy) {
+        const errors: string[] = [];
+        if (!dbHealth.healthy) errors.push(`Database: ${dbHealth.error}`);
+        if (!redisHealth.healthy) errors.push(`Redis: ${redisHealth.error}`);
+
+        const response: HealthCheckResponse = {
+          status: 'error',
+          timestamp: new Date().toISOString(),
+          environment: config.server.nodeEnv,
+          version: '1.0.0',
+          database: dbHealth.healthy ? 'connected' : 'disconnected',
+          redis: redisHealth.healthy ? 'connected' : 'disconnected',
+          message: errors.join('; '),
+        };
+
+        return reply.status(503).send(response);
+      }
+
+      const response: HealthCheckResponse = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        environment: config.server.nodeEnv,
+        version: '1.0.0',
+        database: 'connected',
+        redis: 'connected',
+        uptime: process.uptime(),
+        latency: dbHealth.latency,
+        redisLatency: redisHealth.latency,
+      };
+
+      return reply.status(200).send(response);
+    } catch (error) {
+      logger.error('Health check failed', { error });
+
+      const response: HealthCheckResponse = {
+        status: 'error',
+        timestamp: new Date().toISOString(),
+        environment: config.server.nodeEnv,
+        version: '1.0.0',
+        database: 'disconnected',
+        redis: 'disconnected',
+        message: 'Health check error',
+      };
+
+      return reply.status(503).send(response);
+    }
+  });
+
+  // API info endpoint
+  server.get<{ Reply: ApiInfoResponse }>('/api', async (request, reply) => {
+    const response: ApiInfoResponse = {
+      name: 'DevMetrics API',
       version: '1.0.0',
-      database: 'connected',
+      description: 'Real-time Development Analytics Platform',
+      environment: config.server.nodeEnv,
+      endpoints: {
+        health: '/health',
+        api: '/api',
+      },
     };
-  } catch (error) {
-    reply.status(503);
-    return {
-      status: 'error',
-      message: 'Database connection failed',
-    };
-  }
-});
 
-// API routes
-server.get('/api', async (request, reply) => {
-  return {
-    name: 'DevMetrics API',
-    version: '1.0.0',
-    description: 'Real-time Development Analytics Platform',
-    endpoints: {
-      health: '/health',
-      api: '/api',
-    },
-  };
-});
+    return reply.status(200).send(response);
+  });
 
-// Start server
-async function start() {
+  logger.info('All routes registered successfully');
+}
+
+/**
+ * Start the server
+ */
+async function start(): Promise<void> {
   try {
+    // Connect to database and Redis with retry logic
+    await Promise.all([connectDatabase(), connectRedis()]);
+
+    // Register plugins and middleware
     await registerPlugins();
-    
-    await server.listen({ port: PORT, host: HOST });
-    
+
+    // Register routes
+    await registerRoutes();
+
+    // Start listening (suppress automatic logging to avoid macOS network interface error)
+    await server.listen({
+      port: config.server.port,
+      host: config.server.host,
+      listenTextResolver: () => '', // Suppress Fastify's built-in server address logging
+    });
+
+    // Log startup success
+    logger.info('Server started successfully', {
+      port: config.server.port,
+      host: config.server.host,
+      environment: config.server.nodeEnv,
+    });
+
+    // Pretty console output
     console.log(`
 ╔═══════════════════════════════════════════════════════╗
 ║                                                       ║
 ║         DevMetrics API Server                         ║
 ║                                                       ║
-║  🚀 Server running at: http://localhost:${PORT}      ║
-║  📊 Environment: ${process.env.NODE_ENV}                              ║
+║  🚀 Server running at: http://localhost:${config.server.port}      ║
+║  📊 Environment: ${config.server.nodeEnv.padEnd(10)}                       ║
 ║  🗄️  Database: Connected                              ║
+║  🔴 Redis: Connected                                  ║
+║  📝 Logging: Winston (${config.server.logLevel})                       ║
 ║  ⚡ Status: Ready                                     ║
 ║                                                       ║
 ╚═══════════════════════════════════════════════════════╝
     `);
-    
-    // Test database connection
-    await prisma.$connect();
-    console.log('✓ Database connection verified\n');
-    
   } catch (error) {
+    logger.error('Failed to start server', { error });
     console.error('❌ Error starting server:', error);
     process.exit(1);
   }
 }
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n\nShutting down gracefully...');
-  await prisma.$disconnect();
-  await server.close();
-  process.exit(0);
+/**
+ * Graceful shutdown handler
+ */
+async function shutdown(signal: string): Promise<void> {
+  logger.info(`${signal} received, starting graceful shutdown`);
+  console.log(`\n\n🛑 ${signal} received, shutting down gracefully...`);
+
+  try {
+    // Close server
+    await server.close();
+    logger.info('Fastify server closed');
+
+    // Disconnect from database and Redis
+    await Promise.all([disconnectDatabase(), disconnectRedis()]);
+
+    console.log('✅ Shutdown complete\n');
+    process.exit(0);
+  } catch (error) {
+    logger.error('Error during shutdown', { error });
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
+}
+
+// Register shutdown handlers
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
+// Handle uncaught errors
+process.on('uncaughtException', (error: Error) => {
+  logger.error('Uncaught exception', {
+    error: error.message,
+    stack: error.stack,
+  });
+  console.error('❌ Uncaught exception:', error);
+  process.exit(1);
 });
 
-process.on('SIGTERM', async () => {
-  console.log('\n\nShutting down gracefully...');
-  await prisma.$disconnect();
-  await server.close();
-  process.exit(0);
+process.on('unhandledRejection', (reason: any) => {
+  logger.error('Unhandled rejection', {
+    reason: reason?.message || reason,
+    stack: reason?.stack,
+  });
+  console.error('❌ Unhandled rejection:', reason);
+  process.exit(1);
 });
+
+// Export server for testing
+export { server };
 
 // Start the server
 start();
-
-

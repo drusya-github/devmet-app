@@ -8,12 +8,16 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
     "db:reset": "prisma migrate reset",
     "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"prisma/**/*.ts\" \"*.{js,json,md}\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"prisma/**/*.ts\" \"*.{js,json,md}\"",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -27,6 +31,9 @@
   ],
   "author": "DevMetrics Team",
   "license": "MIT",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.68.0",
     "@fastify/cors": "^11.1.0",
@@ -57,6 +64,7 @@
     "@typescript-eslint/parser": "^8.46.3",
     "eslint": "^9.39.1",
     "jest": "^30.2.0",
+    "prettier": "^3.6.2",
     "prisma": "^6.18.0",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.5",

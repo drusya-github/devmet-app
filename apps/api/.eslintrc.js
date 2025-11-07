@@ -4,15 +4,10 @@ module.exports = {
     ecmaVersion: 2022,
     sourceType: 'module',
   },
-  extends: [
-    'eslint:recommended',
-    'plugin:@typescript-eslint/recommended',
-  ],
+  extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
   rules: {
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     'no-console': 'off',
   },
 };
-
-

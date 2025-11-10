@@ -20,6 +20,7 @@ import {
   disconnectRedis,
   checkRedisHealth,
 } from './database';
+import authPlugin from './plugins/auth.plugin';
 
 // Initialize Fastify
 const server = fastify({
@@ -62,16 +63,39 @@ async function registerPlugins(): Promise<void> {
     }),
   });
 
+  // Authentication middleware (must be before routes)
+  const authMiddleware = await import('./middleware/auth.middleware');
+  await server.register(authMiddleware.default);
+
   // Error handler (must be registered last)
   registerErrorHandler(server);
 
   logger.info('All plugins registered successfully');
 }
 
+
 /**
  * Register application routes
  */
 async function registerRoutes(): Promise<void> {
+  // Authentication routes
+  await server.register(async (fastify) => {
+    const { authRoutes } = await import('./modules/auth');
+    await authRoutes(fastify);
+  }, { prefix: '/api/auth' });
+
+  // User profile routes
+  await server.register(async (fastify) => {
+    const { usersRoutes } = await import('./modules/users');
+    await usersRoutes(fastify);
+  }, { prefix: '/api/users' });
+
+  // Repository routes
+  await server.register(async (fastify) => {
+    const { repositoriesRoutes } = await import('./modules/repositories');
+    await repositoriesRoutes(fastify);
+  }, { prefix: '/api/repositories' });
+
   // Health check endpoint
   server.get<{ Reply: HealthCheckResponse }>('/health', async (request, reply) => {
     try {
@@ -146,6 +170,41 @@ async function registerRoutes(): Promise<void> {
     return reply.status(200).send(response);
   });
 
+  // Test routes for middleware verification (TASK-015)
+  // TODO: Remove these after verification
+  server.get('/api/test/protected', {
+    preHandler: [server.authenticate],
+  }, async (request, reply) => {
+    return {
+      success: true,
+      message: 'You are authenticated!',
+      user: {
+        id: request.user?.id,
+        email: request.user?.email,
+        name: request.user?.name,
+      },
+    };
+  });
+
+  server.get('/api/test/optional', {
+    preHandler: [server.optionalAuthenticate],
+  }, async (request, reply) => {
+    return {
+      success: true,
+      authenticated: !!request.user,
+      userId: request.user?.id || null,
+    };
+  });
+
+  server.get('/api/test/middleware-check', async (request, reply) => {
+    return {
+      hasAuthenticate: typeof server.authenticate === 'function',
+      hasOptionalAuthenticate: typeof server.optionalAuthenticate === 'function',
+      hasRequireRole: typeof server.requireRole === 'function',
+      hasRequireOrganization: typeof server.requireOrganization === 'function',
+    };
+  });
+
   logger.info('All routes registered successfully');
 }
 
@@ -162,6 +221,18 @@ async function start(): Promise<void> {
 
     // Register routes
     await registerRoutes();
+
+    // Start background workers
+    try {
+      const { startImportWorker } = await import('./modules/repositories/import.worker');
+      startImportWorker();
+      logger.info('Import worker started');
+    } catch (error) {
+      logger.warn('Failed to start import worker', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Continue startup even if worker fails
+    }
 
     // Start listening (suppress automatic logging to avoid macOS network interface error)
     await server.listen({
@@ -207,6 +278,17 @@ async function shutdown(signal: string): Promise<void> {
   console.log(`\n\n🛑 ${signal} received, shutting down gracefully...`);
 
   try {
+    // Stop background workers
+    try {
+      const { stopImportWorker } = await import('./modules/repositories/import.worker');
+      await stopImportWorker();
+      logger.info('Import worker stopped');
+    } catch (error) {
+      logger.warn('Error stopping import worker', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
     // Close server
     await server.close();
     logger.info('Fastify server closed');

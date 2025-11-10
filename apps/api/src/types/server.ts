@@ -28,6 +28,8 @@ export interface DatabaseConfig {
  */
 export interface RedisConfig {
   url: string;
+  host: string;
+  port: number;
 }
 
 /**
@@ -44,6 +46,8 @@ export interface RateLimitConfig {
 export interface JWTConfig {
   secret: string;
   expiresIn: string;
+  refreshSecret: string;
+  refreshExpiresIn: string;
 }
 
 /**
@@ -52,8 +56,19 @@ export interface JWTConfig {
 export interface GitHubConfig {
   clientId: string;
   clientSecret: string;
-  callbackUrl: string;
+  appId: string;
+  redirectUri: string;
+  scopes: string;
   webhookSecret: string;
+  webhookProxyUrl: string;
+}
+
+/**
+ * Encryption configuration interface
+ */
+export interface EncryptionConfig {
+  key: string;
+  algorithm: string;
 }
 
 /**
@@ -66,6 +81,8 @@ export interface AppConfig {
   rateLimit: RateLimitConfig;
   jwt: JWTConfig;
   github: GitHubConfig;
+  encryption: EncryptionConfig;
+  apiUrl: string;
   anthropicApiKey: string;
   sessionSecret: string;
   frontendUrl: string;

@@ -206,7 +206,7 @@ export async function withTransaction<T>(
 ): Promise<T> {
   const client = getTestPrismaClient();
 
-  return await client.$transaction(async (tx) => {
+  return await client.$transaction(async (tx: any) => {
     return await callback(tx as PrismaClient);
   });
 }

@@ -579,6 +579,917 @@ Create seed script to populate database with sample data for development.
 
 ---
 🌱 **Tip**: Good seed data makes development and testing much easier!'''
+    },
+    # ============================================================
+    # SPRINT 2 TASKS
+    # ============================================================
+    'TASK-014': {
+        'id': 'TASK-014',
+        'title': 'Implement GitHub OAuth Flow',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'backend',
+        'size': 'L',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Implement GitHub OAuth authentication flow for user sign-up and login.
+
+## User Story
+> As a developer, I want to sign up and log in using my GitHub account so that I don't need to create another password.
+
+## Acceptance Criteria
+- [ ] `src/modules/auth/auth.routes.ts` created with routes:
+  - `GET /api/auth/github` - Initiate OAuth flow
+  - `GET /api/auth/callback` - Handle GitHub callback
+  - `POST /api/auth/logout` - Logout user
+  - `GET /api/auth/me` - Get current user
+- [ ] `src/modules/auth/auth.service.ts` handles OAuth logic
+- [ ] Exchanges OAuth code for GitHub access token
+- [ ] Fetches user profile from GitHub API
+- [ ] Creates or updates user in database
+- [ ] Stores GitHub access token (encrypted)
+- [ ] Issues JWT token for API authentication
+- [ ] JWT includes userId, role, orgIds
+- [ ] Refresh token mechanism implemented
+- [ ] Error handling for OAuth failures
+- [ ] Redirects to frontend with auth token
+
+## Dependencies
+- TASK-006 ✅ (Fastify Server)
+- TASK-009 ✅ (Database Connection)
+
+## Estimated Time
+6-8 hours
+
+---
+🔐 **Important**: This is the foundation for all authenticated features!'''
+    },
+    'TASK-015': {
+        'id': 'TASK-015',
+        'title': 'Create JWT Authentication Middleware',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'backend',
+        'size': 'M',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Create middleware to verify JWT tokens and protect routes.
+
+## Acceptance Criteria
+- [ ] `src/middleware/auth.middleware.ts` created
+- [ ] Extracts JWT from Authorization header
+- [ ] Validates JWT signature and expiration
+- [ ] Attaches user object to request
+- [ ] Returns 401 for missing/invalid token
+- [ ] Returns 403 for expired token
+- [ ] Optional authentication for public routes
+- [ ] Role-based access control helpers
+- [ ] Integration tests for middleware
+
+## Dependencies
+- TASK-014
+
+## Estimated Time
+3-4 hours
+
+---
+🔒 **Tip**: Proper auth middleware is critical for API security!'''
+    },
+    'TASK-016': {
+        'id': 'TASK-016',
+        'title': 'Implement User Profile Management',
+        'type': 'feature',
+        'priority': 'P1-High',
+        'category': 'backend',
+        'size': 'M',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Implement user profile viewing and updating functionality.
+
+## User Story
+> As a user, I want to view and update my profile information.
+
+## Acceptance Criteria
+- [ ] Routes created:
+  - `GET /api/users/me` - Get current user profile
+  - `PATCH /api/users/me` - Update profile
+  - `DELETE /api/users/me` - Delete account (GDPR compliance)
+- [ ] `src/modules/users/users.service.ts` created
+- [ ] Can update name, avatar, preferences
+- [ ] Cannot update githubId or email directly
+- [ ] Account deletion cascades to related data
+- [ ] Account deletion logs for audit
+- [ ] Input validation with Zod
+- [ ] Unit tests for user service
+
+## Dependencies
+- TASK-015
+
+## Estimated Time
+4 hours
+
+---
+👤 **Tip**: GDPR compliance requires proper account deletion!'''
+    },
+    'TASK-017': {
+        'id': 'TASK-017',
+        'title': 'Implement Repository Listing from GitHub',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'integration',
+        'size': 'M',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Fetch and display user's GitHub repositories for selection.
+
+## User Story
+> As a user, I want to see a list of my GitHub repositories so that I can choose which ones to track.
+
+## Acceptance Criteria
+- [ ] `GET /api/repositories/available` route created
+- [ ] Uses Octokit to fetch user's repositories from GitHub
+- [ ] Returns both owned and accessible repos
+- [ ] Includes repo metadata (name, description, language, stars)
+- [ ] Filters out already connected repos
+- [ ] Pagination support for large repo lists
+- [ ] Caches results in Redis (5 min TTL)
+- [ ] Handles GitHub API rate limits gracefully
+- [ ] Error handling for API failures
+
+## Dependencies
+- TASK-015
+
+## Estimated Time
+4 hours
+
+---
+📚 **Tip**: Cache GitHub API responses to avoid rate limits!'''
+    },
+    'TASK-018': {
+        'id': 'TASK-018',
+        'title': 'Implement Repository Connection',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'integration',
+        'size': 'L',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Allow users to connect repositories and register webhooks.
+
+## User Story
+> As a user, I want to connect my repositories to DevMetrics so that they can be tracked.
+
+## Acceptance Criteria
+- [ ] Routes created:
+  - `POST /api/repositories` - Connect repository
+  - `GET /api/repositories` - List connected repos
+  - `GET /api/repositories/:id` - Get repo details
+  - `DELETE /api/repositories/:id` - Disconnect repo
+- [ ] `src/modules/repositories/repositories.service.ts` created
+- [ ] Validates user has access to repository
+- [ ] Registers webhook with GitHub
+- [ ] Stores webhook ID in database
+- [ ] Webhook secret properly configured
+- [ ] Can disconnect repo (removes webhook)
+- [ ] Bulk import supported (connect multiple repos)
+- [ ] Input validation
+- [ ] Unit and integration tests
+
+## Dependencies
+- TASK-017
+
+## Estimated Time
+6-8 hours
+
+---
+🔗 **Important**: Webhook setup is crucial for real-time data!'''
+    },
+    'TASK-019': {
+        'id': 'TASK-019',
+        'title': 'Implement Historical Data Import',
+        'type': 'feature',
+        'priority': 'P1-High',
+        'category': 'integration',
+        'size': 'XL',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Import historical GitHub data when a repository is connected.
+
+## User Story
+> As a user, when I connect a repository, I want historical data imported so that I can see trends immediately.
+
+## Acceptance Criteria
+- [ ] `src/modules/repositories/import.service.ts` created
+- [ ] Imports last 90 days of data on repo connection
+- [ ] Fetches commits, PRs, issues from GitHub API
+- [ ] Processes data in batches to avoid rate limits
+- [ ] Uses Bull queue for background processing
+- [ ] Shows import progress to user
+- [ ] Can resume interrupted imports
+- [ ] Stores raw data in events table
+- [ ] Calculates initial metrics after import
+- [ ] Handles API rate limiting with backoff
+- [ ] Error handling and retry logic
+- [ ] Logs import statistics
+
+## Dependencies
+- TASK-018
+
+## Estimated Time
+8-12 hours
+
+---
+📥 **Tip**: Historical data import is complex - handle rate limits carefully!'''
+    },
+    'TASK-020': {
+        'id': 'TASK-020',
+        'title': 'Create Webhook Endpoint',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'integration',
+        'size': 'M',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Create endpoint to receive GitHub webhooks for real-time updates.
+
+## User Story
+> As a system, I need to receive real-time events from GitHub so that metrics stay up-to-date.
+
+## Acceptance Criteria
+- [ ] `POST /api/webhooks/github` route created
+- [ ] `src/modules/webhooks/webhooks.controller.ts` created
+- [ ] Validates webhook signature using HMAC
+- [ ] Rejects webhooks with invalid signature
+- [ ] Parses webhook event type from headers
+- [ ] Accepts event types: push, pull_request, issues, pull_request_review
+- [ ] Queues events for async processing
+- [ ] Returns 200 OK immediately to GitHub
+- [ ] Logs all webhook receipts
+- [ ] Rate limiting disabled for webhook endpoint
+- [ ] Integration tests with sample webhooks
+
+## Dependencies
+- TASK-010 ✅ (Redis Connection)
+
+## Estimated Time
+4 hours
+
+---
+🎣 **Important**: Webhook signature validation prevents spoofing!'''
+    },
+    'TASK-021': {
+        'id': 'TASK-021',
+        'title': 'Implement Webhook Queue Processing',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'backend',
+        'size': 'L',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Process webhook events asynchronously using Bull queue.
+
+## Acceptance Criteria
+- [ ] `src/modules/webhooks/webhooks.queue.ts` created
+- [ ] Bull queue configured with Redis
+- [ ] Worker processes queued webhooks
+- [ ] Extracts relevant data from each event type
+- [ ] Creates records in events table
+- [ ] Updates related models (commits, PRs, issues)
+- [ ] Triggers metric calculation jobs
+- [ ] Retry failed jobs (3 attempts with exponential backoff)
+- [ ] Dead letter queue for permanently failed jobs
+- [ ] Job monitoring dashboard data
+- [ ] Unit tests for each event type processor
+
+## Dependencies
+- TASK-020
+
+## Estimated Time
+6-8 hours
+
+---
+⚡ **Tip**: Queue processing keeps webhook responses fast!'''
+    },
+    'TASK-022': {
+        'id': 'TASK-022',
+        'title': 'Implement Event Processors',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'backend',
+        'size': 'L',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Create processors for different GitHub event types.
+
+## Acceptance Criteria
+- [ ] `src/modules/webhooks/processors/` directory created
+- [ ] Push event processor:
+  - Extracts commit data
+  - Creates commit records
+  - Links to repository and author
+  - Stores additions/deletions
+- [ ] Pull request event processor:
+  - Handles opened, closed, merged, review_requested
+  - Creates/updates PR records
+  - Calculates PR cycle time
+  - Tracks review status
+- [ ] Issue event processor:
+  - Handles opened, closed, assigned
+  - Creates/updates issue records
+  - Tracks resolution time
+- [ ] PR review event processor:
+  - Tracks review comments
+  - Stores approval/rejection
+  - Updates PR review metrics
+- [ ] Each processor has unit tests
+- [ ] Error handling for malformed events
+
+## Dependencies
+- TASK-021
+
+## Estimated Time
+8-10 hours
+
+---
+🔧 **Tip**: Each event type has unique structure - handle carefully!'''
+    },
+    'TASK-023': {
+        'id': 'TASK-023',
+        'title': 'Implement Basic Metrics Service',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'backend',
+        'size': 'L',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Create service to calculate developer and team metrics from event data.
+
+## Acceptance Criteria
+- [ ] `src/modules/metrics/metrics.service.ts` created
+- [ ] Individual developer metrics:
+  - Commits per day/week
+  - PRs opened/merged
+  - Code contribution volume (additions + deletions)
+  - Issue resolution time
+  - PR review turnaround time
+- [ ] Team metrics:
+  - Team velocity (story points or PRs merged)
+  - PR cycle time average
+  - Code review coverage
+  - Issue resolution rate
+- [ ] Repository metrics:
+  - Commit frequency
+  - PR merge rate
+  - Active contributors
+- [ ] Metrics stored in respective tables
+- [ ] Incremental calculation (only new data)
+- [ ] Batch calculation for historical data
+- [ ] Unit tests for calculations
+
+## Dependencies
+- TASK-022
+
+## Estimated Time
+8-10 hours
+
+---
+📊 **Important**: Accurate metrics are the core value of DevMetrics!'''
+    },
+    'TASK-024': {
+        'id': 'TASK-024',
+        'title': 'Create Metrics API Endpoints',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'backend',
+        'size': 'M',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Create API endpoints to retrieve calculated metrics.
+
+## User Story
+> As a user, I want to view my team's metrics via API so that I can display them in the dashboard.
+
+## Acceptance Criteria
+- [ ] Routes created:
+  - `GET /api/metrics/developer/:userId` - Individual metrics
+  - `GET /api/metrics/team/:orgId` - Team metrics
+  - `GET /api/metrics/repository/:repoId` - Repository metrics
+  - `GET /api/metrics/trends` - Trend data over time
+- [ ] Query parameters for date range filtering
+- [ ] Response includes calculated metrics and trends
+- [ ] Caching for expensive queries (15 min TTL)
+- [ ] Pagination for large datasets
+- [ ] Input validation
+- [ ] Authorization checks (user can only see their org's metrics)
+- [ ] Integration tests
+
+## Dependencies
+- TASK-023
+
+## Estimated Time
+4-5 hours
+
+---
+🔍 **Tip**: Cache metrics endpoints - they're expensive to calculate!'''
+    },
+    'TASK-025': {
+        'id': 'TASK-025',
+        'title': 'Implement Metrics Aggregation Jobs',
+        'type': 'chore',
+        'priority': 'P1-High',
+        'category': 'backend',
+        'size': 'M',
+        'sprint': 'Sprint-2',
+        'description': '''## Description
+Create scheduled jobs to aggregate metrics daily.
+
+## Acceptance Criteria
+- [ ] `src/modules/metrics/metrics.jobs.ts` created
+- [ ] Bull cron job runs daily at midnight
+- [ ] Aggregates previous day's data
+- [ ] Calculates developer metrics for all users
+- [ ] Calculates team metrics for all organizations
+- [ ] Updates repository stats
+- [ ] Stores aggregated data in time-series tables
+- [ ] Sends alerts for anomalies
+- [ ] Logs job execution stats
+- [ ] Can manually trigger aggregation
+
+## Dependencies
+- TASK-023
+
+## Estimated Time
+4 hours
+
+---
+⏰ **Tip**: Daily aggregation keeps dashboard queries fast!'''
+    },
+    # ============================================================
+    # SPRINT 3 TASKS
+    # ============================================================
+    'TASK-026': {
+        'id': 'TASK-026',
+        'title': 'Initialize Frontend Project',
+        'type': 'chore',
+        'priority': 'P0-Critical',
+        'category': 'frontend',
+        'size': 'M',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Set up Next.js 14 frontend with TypeScript and Tailwind CSS.
+
+## Acceptance Criteria
+- [ ] `apps/web` directory created
+- [ ] Next.js 14 with App Router initialized
+- [ ] TypeScript configured
+- [ ] Tailwind CSS installed and configured
+- [ ] shadcn/ui components installed
+- [ ] ESLint and Prettier configured
+- [ ] Folder structure created:
+  - `app/` - Pages and layouts
+  - `components/` - Reusable components
+  - `lib/` - Utilities and API client
+  - `hooks/` - Custom React hooks
+  - `types/` - TypeScript types
+  - `public/` - Static assets
+- [ ] `.env.local` for environment variables
+- [ ] Development server runs on port 3000
+
+## Dependencies
+None
+
+## Estimated Time
+3-4 hours
+
+---
+⚛️ **Tip**: Next.js App Router is the modern way to build React apps!'''
+    },
+    'TASK-027': {
+        'id': 'TASK-027',
+        'title': 'Create API Client Library',
+        'type': 'chore',
+        'priority': 'P0-Critical',
+        'category': 'frontend',
+        'size': 'M',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Create TypeScript API client for communicating with backend.
+
+## Acceptance Criteria
+- [ ] `lib/api-client.ts` created
+- [ ] Axios instance with base URL configuration
+- [ ] Request interceptor adds JWT token
+- [ ] Response interceptor handles errors
+- [ ] Refresh token logic
+- [ ] Type-safe API methods for all endpoints
+- [ ] Error handling and retries
+- [ ] Request/response logging in development
+
+## Dependencies
+- TASK-026
+
+## Estimated Time
+3-4 hours
+
+---
+📡 **Tip**: Type-safe API client prevents runtime errors!'''
+    },
+    'TASK-028': {
+        'id': 'TASK-028',
+        'title': 'Implement Authentication Flow (Frontend)',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'frontend',
+        'size': 'L',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Implement frontend authentication flow with GitHub OAuth.
+
+## User Story
+> As a user, I want to sign in with GitHub and stay logged in across sessions.
+
+## Acceptance Criteria
+- [ ] Login page with "Sign in with GitHub" button
+- [ ] OAuth flow redirects to GitHub
+- [ ] Callback page receives auth token
+- [ ] Stores JWT in httpOnly cookie or localStorage
+- [ ] Auth context provider for global auth state
+- [ ] `useAuth()` hook for accessing auth state
+- [ ] Protected route wrapper component
+- [ ] Automatic redirect to login for unauthenticated users
+- [ ] Logout functionality
+- [ ] Token refresh before expiration
+- [ ] Loading states during auth
+
+## Dependencies
+- TASK-027
+- TASK-014 (Backend OAuth)
+
+## Estimated Time
+6-8 hours
+
+---
+🔐 **Important**: Secure token storage is critical!'''
+    },
+    'TASK-029': {
+        'id': 'TASK-029',
+        'title': 'Create Layout and Navigation',
+        'type': 'feature',
+        'priority': 'P1-High',
+        'category': 'frontend',
+        'size': 'M',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Build main application layout with sidebar navigation.
+
+## Acceptance Criteria
+- [ ] Responsive sidebar navigation
+- [ ] Navigation items:
+  - Dashboard
+  - Repositories
+  - Metrics
+  - Team
+  - Settings
+- [ ] User profile dropdown in header
+- [ ] Mobile-friendly hamburger menu
+- [ ] Active route highlighting
+- [ ] Organization switcher (if multiple orgs)
+- [ ] Dark mode toggle
+- [ ] Uses shadcn/ui components
+
+## Dependencies
+- TASK-028
+
+## Estimated Time
+4-5 hours
+
+---
+🎨 **Tip**: Good navigation UX makes the app intuitive!'''
+    },
+    'TASK-030': {
+        'id': 'TASK-030',
+        'title': 'Create Main Dashboard Page',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'frontend',
+        'size': 'L',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Create main dashboard showing team metrics overview.
+
+## User Story
+> As a user, I want to see an overview of my team's metrics on the main dashboard.
+
+## Acceptance Criteria
+- [ ] Dashboard page at `/dashboard`
+- [ ] Overview cards showing:
+  - Total commits (this week)
+  - Open PRs
+  - Average PR cycle time
+  - Active contributors
+- [ ] Commit activity chart (last 30 days)
+- [ ] PR velocity trend chart
+- [ ] Top contributors list
+- [ ] Recent activity feed
+- [ ] Loading states for data fetching
+- [ ] Error states with retry
+- [ ] Empty states for no data
+- [ ] Responsive design (mobile, tablet, desktop)
+
+## Dependencies
+- TASK-029
+- TASK-024 (Metrics API)
+
+## Estimated Time
+8-10 hours
+
+---
+📊 **Important**: The dashboard is the first thing users see - make it great!'''
+    },
+    'TASK-031': {
+        'id': 'TASK-031',
+        'title': 'Implement Metrics Charts',
+        'type': 'feature',
+        'priority': 'P1-High',
+        'category': 'frontend',
+        'size': 'L',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Create reusable chart components for metrics visualization.
+
+## Acceptance Criteria
+- [ ] Install Recharts library
+- [ ] Line chart component for trends
+- [ ] Bar chart component for comparisons
+- [ ] Area chart for cumulative metrics
+- [ ] Pie/donut chart for distributions
+- [ ] Responsive charts
+- [ ] Tooltips with detailed info
+- [ ] Legend support
+- [ ] Custom colors matching design system
+- [ ] Loading skeletons
+- [ ] Empty state handling
+- [ ] Export chart as image functionality
+
+## Dependencies
+- TASK-030
+
+## Estimated Time
+6-8 hours
+
+---
+📈 **Tip**: Recharts is great for React chart visualization!'''
+    },
+    'TASK-032': {
+        'id': 'TASK-032',
+        'title': 'Create Repository Management Page',
+        'type': 'feature',
+        'priority': 'P0-Critical',
+        'category': 'frontend',
+        'size': 'L',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Create page for managing connected repositories.
+
+## User Story
+> As a user, I want to view and manage my connected repositories.
+
+## Acceptance Criteria
+- [ ] Repositories page at `/repositories`
+- [ ] List of connected repositories with:
+  - Repository name and description
+  - Last sync time
+  - Number of tracked events
+  - Basic stats (commits, PRs, issues)
+  - Disconnect button
+- [ ] "Add Repository" button
+- [ ] Modal to select repositories from GitHub
+- [ ] Search/filter repositories
+- [ ] Bulk connect repositories
+- [ ] Import status indicator
+- [ ] Repository detail view
+- [ ] Confirm before disconnecting
+
+## Dependencies
+- TASK-029
+- TASK-018 (Backend Repository Connection)
+
+## Estimated Time
+8-10 hours
+
+---
+🗂️ **Tip**: Clear repository management reduces user confusion!'''
+    },
+    'TASK-033': {
+        'id': 'TASK-033',
+        'title': 'Create Individual Developer Metrics Page',
+        'type': 'feature',
+        'priority': 'P1-High',
+        'category': 'frontend',
+        'size': 'M',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Create page showing individual developer metrics.
+
+## User Story
+> As a developer, I want to see my personal contribution metrics and compare them with team averages.
+
+## Acceptance Criteria
+- [ ] Personal metrics page at `/metrics/me`
+- [ ] Metrics displayed:
+  - Commits per day/week
+  - PRs opened/merged
+  - Code review stats
+  - Issue resolution time
+  - Contribution streak
+- [ ] Comparison with team average (anonymized)
+- [ ] Time range selector (week, month, quarter, year)
+- [ ] Charts for each metric
+- [ ] Export data as CSV
+- [ ] Responsive design
+
+## Dependencies
+- TASK-030
+- TASK-024 (Metrics API)
+
+## Estimated Time
+5-6 hours
+
+---
+👨‍💻 **Tip**: Personal metrics help developers track their growth!'''
+    },
+    'TASK-034': {
+        'id': 'TASK-034',
+        'title': 'Implement WebSocket Server (Backend)',
+        'type': 'feature',
+        'priority': 'P1-High',
+        'category': 'backend',
+        'size': 'M',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Set up Socket.io server for real-time updates.
+
+## Acceptance Criteria
+- [ ] Socket.io integrated with Fastify
+- [ ] Socket authentication using JWT
+- [ ] User joins organization room on connect
+- [ ] User joins repository rooms for tracked repos
+- [ ] Connection/disconnection logging
+- [ ] Heartbeat/ping-pong for connection health
+- [ ] Graceful disconnect handling
+- [ ] Rate limiting for socket events
+- [ ] Error handling and recovery
+
+## Dependencies
+- TASK-006 ✅ (Fastify Server)
+
+## Estimated Time
+4 hours
+
+---
+🔌 **Tip**: WebSockets enable real-time collaboration!'''
+    },
+    'TASK-035': {
+        'id': 'TASK-035',
+        'title': 'Emit Real-time Events from Backend',
+        'type': 'feature',
+        'priority': 'P1-High',
+        'category': 'backend',
+        'size': 'M',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Emit Socket.io events when metrics update.
+
+## Acceptance Criteria
+- [ ] Events emitted:
+  - `metric:updated` - When new metrics calculated
+  - `repository:event` - When new GitHub event received
+  - `pr:opened` - When new PR created
+  - `pr:merged` - When PR merged
+  - `commit:pushed` - When commits pushed
+- [ ] Events sent to appropriate rooms (org/repo)
+- [ ] Event payload includes all necessary data
+- [ ] No sensitive data in events
+- [ ] Events logged for debugging
+- [ ] Integration with webhook processors
+
+## Dependencies
+- TASK-034
+- TASK-022 (Event Processors)
+
+## Estimated Time
+3-4 hours
+
+---
+📡 **Tip**: Real-time events make the dashboard feel alive!'''
+    },
+    'TASK-036': {
+        'id': 'TASK-036',
+        'title': 'Implement WebSocket Client (Frontend)',
+        'type': 'feature',
+        'priority': 'P1-High',
+        'category': 'frontend',
+        'size': 'M',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Connect frontend to Socket.io for real-time updates.
+
+## Acceptance Criteria
+- [ ] `lib/socket-client.ts` created
+- [ ] Socket.io client initialized with auth
+- [ ] Auto-reconnect on disconnect
+- [ ] `useSocket()` hook for components
+- [ ] Subscribe to organization events
+- [ ] Subscribe to repository events
+- [ ] Event handlers update UI automatically
+- [ ] Connection status indicator
+- [ ] Error handling and recovery
+- [ ] Cleanup on unmount
+
+## Dependencies
+- TASK-035
+
+## Estimated Time
+4 hours
+
+---
+🔄 **Tip**: Handle reconnection gracefully for better UX!'''
+    },
+    'TASK-037': {
+        'id': 'TASK-037',
+        'title': 'Add Real-time Updates to Dashboard',
+        'type': 'feature',
+        'priority': 'P1-High',
+        'category': 'frontend',
+        'size': 'S',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Make dashboard update in real-time with WebSocket events.
+
+## User Story
+> As a user, I want to see metrics update in real-time without refreshing the page.
+
+## Acceptance Criteria
+- [ ] Dashboard subscribes to real-time events
+- [ ] Metrics cards update when `metric:updated` received
+- [ ] Activity feed shows new events immediately
+- [ ] Charts update with new data points
+- [ ] Smooth animations for updates
+- [ ] Toast notifications for important events
+- [ ] No full page refresh needed
+- [ ] Optimistic UI updates
+
+## Dependencies
+- TASK-036
+- TASK-030
+
+## Estimated Time
+3 hours
+
+---
+✨ **Tip**: Real-time updates create a magical user experience!'''
+    },
+    'TASK-038': {
+        'id': 'TASK-038',
+        'title': 'Create Settings Page',
+        'type': 'feature',
+        'priority': 'P2-Medium',
+        'category': 'frontend',
+        'size': 'M',
+        'sprint': 'Sprint-3',
+        'description': '''## Description
+Create settings page for user preferences and configuration.
+
+## User Story
+> As a user, I want to configure my preferences and notification settings.
+
+## Acceptance Criteria
+- [ ] Settings page at `/settings`
+- [ ] Tabs for different setting categories:
+  - Profile
+  - Notifications
+  - API Keys
+  - Billing (placeholder)
+- [ ] Profile settings:
+  - Update name
+  - Update avatar
+  - Change email preferences
+- [ ] Notification settings:
+  - Enable/disable notification types
+  - Choose channels (email, Slack)
+- [ ] API key generation and management
+- [ ] Delete account option
+- [ ] Form validation
+- [ ] Success/error messages
+
+## Dependencies
+- TASK-029
+
+## Estimated Time
+5-6 hours
+
+---
+⚙️ **Tip**: Settings page improves user control over their experience!'''
     }
 }
 

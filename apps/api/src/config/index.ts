@@ -38,7 +38,9 @@ const envSchema = z.object({
     .describe('PostgreSQL database connection URL (required)'),
 
   // Redis Configuration
-  REDIS_URL: z.string().url().startsWith('redis://').describe('Redis connection URL (required)'),
+  REDIS_URL: z.string().url().startsWith('redis://').optional().default('redis://localhost:6379').describe('Redis connection URL'),
+  REDIS_HOST: z.string().default('localhost').describe('Redis host'),
+  REDIS_PORT: z.string().default('6379').transform((val) => parseInt(val, 10)).pipe(z.number().int().positive()).describe('Redis port'),
 
   // JWT Configuration
   JWT_SECRET: z
@@ -48,33 +50,80 @@ const envSchema = z.object({
 
   JWT_EXPIRES_IN: z
     .string()
+    .default('1h')
+    .describe('JWT token expiration time (e.g., "1h", "24h", "30m")'),
+
+  JWT_REFRESH_SECRET: z
+    .string()
+    .min(32, 'JWT_REFRESH_SECRET must be at least 32 characters for security')
+    .describe('Secret key for refresh token signing (min 32 characters)'),
+
+  JWT_REFRESH_EXPIRES_IN: z
+    .string()
     .default('7d')
-    .describe('JWT token expiration time (e.g., "7d", "24h", "30m")'),
+    .describe('JWT refresh token expiration time (e.g., "7d", "30d")'),
 
   SESSION_SECRET: z
     .string()
     .min(32, 'SESSION_SECRET must be at least 32 characters for security')
+    .optional()
+    .default('')
     .describe('Secret key for session encryption (min 32 characters)'),
 
   // GitHub Configuration
-  GITHUB_CLIENT_ID: z.string().optional().default('').describe('GitHub OAuth App Client ID'),
+  GITHUB_CLIENT_ID: z.string().min(1, 'GITHUB_CLIENT_ID is required').describe('GitHub OAuth App Client ID'),
 
   GITHUB_CLIENT_SECRET: z
     .string()
-    .optional()
-    .default('')
+    .min(1, 'GITHUB_CLIENT_SECRET is required')
     .describe('GitHub OAuth App Client Secret'),
 
-  GITHUB_CALLBACK_URL: z
+  GITHUB_APP_ID: z
+    .string()
+    .optional()
+    .default('')
+    .describe('GitHub App ID (optional)'),
+
+  GITHUB_REDIRECT_URI: z
     .string()
     .url()
-    .default('http://localhost:3001/api/auth/github/callback')
-    .describe('GitHub OAuth callback URL'),
+    .default('http://localhost:3001/api/auth/callback')
+    .describe('GitHub OAuth redirect URI'),
+
+  GITHUB_OAUTH_SCOPES: z
+    .string()
+    .default('repo,user:email,read:org')
+    .describe('GitHub OAuth scopes (comma-separated)'),
 
   GITHUB_WEBHOOK_SECRET: z
     .string()
     .min(16, 'GITHUB_WEBHOOK_SECRET should be at least 16 characters')
     .describe('Secret for verifying GitHub webhook signatures (min 16 characters)'),
+
+  GITHUB_WEBHOOK_PROXY_URL: z
+    .string()
+    .url()
+    .optional()
+    .default('')
+    .describe('Webhook proxy URL for local development (e.g., smee.io)'),
+
+  // Encryption Configuration
+  ENCRYPTION_KEY: z
+    .string()
+    .min(64, 'ENCRYPTION_KEY must be 64 hex characters (32 bytes)')
+    .describe('Encryption key for sensitive data (64 hex chars)'),
+
+  ENCRYPTION_ALGORITHM: z
+    .string()
+    .default('aes-256-gcm')
+    .describe('Encryption algorithm'),
+
+  // API URLs
+  API_URL: z
+    .string()
+    .url()
+    .default('http://localhost:3001')
+    .describe('API server URL'),
 
   // AI Configuration
   ANTHROPIC_API_KEY: z
@@ -127,32 +176,37 @@ function validateAndParseEnv(): ValidatedEnv {
     return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('\n❌ Configuration Validation Failed!\n');
-      console.error('The following environment variables have issues:\n');
+      // In test environment, don't exit process, just throw the error
+      const isTest = process.env.NODE_ENV === 'test';
+      
+      if (!isTest) {
+        console.error('\n❌ Configuration Validation Failed!\n');
+        console.error('The following environment variables have issues:\n');
 
-      const zodError = error as z.ZodError<ValidatedEnv>;
-      zodError.issues.forEach((err) => {
-        const field = err.path.join('.');
-        const message = err.message;
-        const value = process.env[err.path[0] as string];
+        const zodError = error as z.ZodError<ValidatedEnv>;
+        zodError.issues.forEach((err) => {
+          const field = err.path.join('.');
+          const message = err.message;
+          const value = process.env[err.path[0] as string];
 
-        console.error(`  🔴 ${field}:`);
-        console.error(`     Problem: ${message}`);
-        if (value) {
-          console.error(`     Current: "${value}"`);
-        } else {
-          console.error(`     Current: <not set>`);
-        }
-        console.error('');
-      });
+          console.error(`  🔴 ${field}:`);
+          console.error(`     Problem: ${message}`);
+          if (value) {
+            console.error(`     Current: "${value}"`);
+          } else {
+            console.error(`     Current: <not set>`);
+          }
+          console.error('');
+        });
 
-      console.error('💡 Tips:');
-      console.error('  - Check your .env file exists in the project root');
-      console.error('  - Ensure all required variables are set');
-      console.error('  - Verify URL formats include protocol (http://, redis://, etc.)');
-      console.error('  - Secrets should be at least 32 characters long\n');
+        console.error('💡 Tips:');
+        console.error('  - Check your .env file exists in the project root');
+        console.error('  - Ensure all required variables are set');
+        console.error('  - Verify URL formats include protocol (http://, redis://, etc.)');
+        console.error('  - Secrets should be at least 32 characters long\n');
 
-      process.exit(1);
+        process.exit(1);
+      }
     }
     throw error;
   }
@@ -179,6 +233,8 @@ export const config: AppConfig = {
   },
   redis: {
     url: env.REDIS_URL,
+    host: env.REDIS_HOST,
+    port: env.REDIS_PORT,
   },
   rateLimit: {
     maxRequests: env.RATE_LIMIT_MAX_REQUESTS,
@@ -187,13 +243,23 @@ export const config: AppConfig = {
   jwt: {
     secret: env.JWT_SECRET,
     expiresIn: env.JWT_EXPIRES_IN,
+    refreshSecret: env.JWT_REFRESH_SECRET,
+    refreshExpiresIn: env.JWT_REFRESH_EXPIRES_IN,
   },
   github: {
     clientId: env.GITHUB_CLIENT_ID,
     clientSecret: env.GITHUB_CLIENT_SECRET,
-    callbackUrl: env.GITHUB_CALLBACK_URL,
+    appId: env.GITHUB_APP_ID,
+    redirectUri: env.GITHUB_REDIRECT_URI,
+    scopes: env.GITHUB_OAUTH_SCOPES,
     webhookSecret: env.GITHUB_WEBHOOK_SECRET,
+    webhookProxyUrl: env.GITHUB_WEBHOOK_PROXY_URL,
   },
+  encryption: {
+    key: env.ENCRYPTION_KEY,
+    algorithm: env.ENCRYPTION_ALGORITHM,
+  },
+  apiUrl: env.API_URL,
   anthropicApiKey: env.ANTHROPIC_API_KEY,
   sessionSecret: env.SESSION_SECRET,
   frontendUrl: env.FRONTEND_URL,

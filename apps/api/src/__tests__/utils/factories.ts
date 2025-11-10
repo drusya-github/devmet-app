@@ -52,6 +52,7 @@ export const createMockUser = (overrides?: Partial<User>): User => {
     lastLoginAt: new Date(),
     lastLoginIp: '127.0.0.1',
     loginCount: 1,
+    deletedAt: null, // Add deletedAt field
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

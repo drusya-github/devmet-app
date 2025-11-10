@@ -343,7 +343,7 @@ describe('Example Integration Tests', () => {
       const email = 'transaction@example.com';
 
       try {
-        await prisma.$transaction(async (tx) => {
+        await prisma.$transaction(async (tx: any) => {
           // Create first user
           await tx.user.create({
             data: {
@@ -377,7 +377,7 @@ describe('Example Integration Tests', () => {
     });
 
     it('should commit transaction on success', async () => {
-      await prisma.$transaction(async (tx) => {
+      await prisma.$transaction(async (tx: any) => {
         await tx.user.create({
           data: {
             githubId: BigInt(12345),

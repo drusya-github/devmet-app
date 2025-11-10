@@ -88,11 +88,14 @@ function parseRedisUrl(url: string): { host: string; port: number } {
 function createRedisClient(): Redis {
   logger.info('Creating new Redis Client instance');
 
-  const { host, port } = parseRedisUrl(config.redis.url);
+  // Use host/port from config if available, otherwise parse URL
+  const host = config.redis.host || parseRedisUrl(config.redis.url).host;
+  const port = config.redis.port || parseRedisUrl(config.redis.url).port;
 
   const options: RedisOptions = {
     host,
     port,
+    family: 4, // Force IPv4 to avoid IPv6 connection issues
     maxRetriesPerRequest: RETRY_CONFIG.maxRetries,
     retryStrategy: (times: number) => {
       if (times > RETRY_CONFIG.maxRetries) {

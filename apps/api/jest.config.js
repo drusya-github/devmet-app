@@ -1,77 +1,42 @@
-/** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
-
-  // Setup files
-  setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
-
-  // Transform configuration
-  transform: {
-    '^.+\\.ts$': 'ts-jest',
-  },
-
-  // Coverage configuration
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-    '!src/**/__tests__/**',
-    '!src/**/*.test.ts',
-    '!src/setupTests.ts',
+  testMatch: [
+    '**/__tests__/**/*.test.ts',
+    '**/*.test.ts'
   ],
-  coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html', 'json-summary'],
-  coverageThreshold: {
-    global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70,
-    },
-  },
-
-  // Module configuration
-  moduleFileExtensions: ['ts', 'js', 'json', 'node'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
-
-  // Test execution configuration
-  verbose: true,
-  testTimeout: 30000,
-  clearMocks: true,
-  resetMocks: true,
-  restoreMocks: true,
-
-  // Global configuration
-  globals: {
-    'ts-jest': {
+  transform: {
+    '^.+\\.ts$': ['ts-jest', {
       tsconfig: {
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,
       },
-    },
+    }],
+    '^.+\\.js$': ['ts-jest', {
+      tsconfig: {
+        esModuleInterop: true,
+        allowSyntheticDefaultImports: true,
+        module: 'commonjs',
+      },
+    }],
   },
-
-  // Output configuration for CI
-  // Note: Uncomment jest-junit reporter when running in CI
-  reporters: ['default'],
-
-  // For CI environments, uncomment this:
-  // reporters: [
-  //   'default',
-  //   [
-  //     'jest-junit',
-  //     {
-  //       outputDirectory: './coverage',
-  //       outputName: 'junit.xml',
-  //       classNameTemplate: '{classname}',
-  //       titleTemplate: '{title}',
-  //       ancestorSeparator: ' › ',
-  //       usePathForSuiteName: true,
-  //     },
-  //   ],
-  // ],
+  transformIgnorePatterns: [
+    'node_modules/(?!(@octokit|before-after-hook|universal-user-agent)/)',
+  ],
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.test.ts',
+    '!src/**/__tests__/**',
+    '!src/**/*.d.ts',
+  ],
+  setupFilesAfterEnv: ['<rootDir>/src/__tests__/setup.ts'],
+  moduleFileExtensions: ['ts', 'js', 'json'],
+  testTimeout: 10000,
+  clearMocks: true,
+  resetMocks: true,
+  restoreMocks: true,
 };

@@ -333,7 +333,7 @@ export class AuthService {
     return {
       id: user.id,
       githubId: user.githubId ? user.githubId.toString() : null, // Convert BigInt to string for JSON serialization
-      username: user.email ? user.email.split('@')[0] : user.username || 'unknown', // Derive username from email or use existing username
+      username: user.email ? user.email.split('@')[0] : 'unknown', // Derive username from email
       email: user.email,
       name: user.name,
       avatarUrl: user.avatarUrl,

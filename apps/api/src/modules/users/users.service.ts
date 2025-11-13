@@ -64,11 +64,8 @@ export class UsersService {
 
     const sanitized = this.sanitizeUser(user);
 
-    // Cache for 15 minutes
-    await redis.setex(cacheKey, DEFAULT_TTL.MEDIUM, JSON.stringify({
-      ...sanitized,
-      githubId: sanitized.githubId.toString(),
-    }));
+    // Cache for 15 minutes (githubId is already a string in sanitized user)
+    await redis.setex(cacheKey, DEFAULT_TTL.MEDIUM, JSON.stringify(sanitized));
 
     return sanitized;
   }

@@ -1,22 +1,9 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
-// Update this import path based on your actual JWT utility location
-import { verifyToken } from '../utils/jwt';
+import { verifyAccessToken } from '../utils/jwt';
 
-// Properly declare the user type on FastifyRequest
-declare module 'fastify' {
-  interface FastifyInstance {
-    authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
-  }
-  
-  interface FastifyRequest {
-    user?: {
-      userId: string;
-      email: string;
-      username: string;
-    };
-  }
-}
+// Type declarations are now in src/types/fastify.d.ts
+// This plugin is deprecated - use auth.middleware.ts instead
 
 /**
  * Authentication plugin for Fastify
@@ -48,15 +35,13 @@ async function authPlugin(fastify: FastifyInstance) {
       // Extract token
       const token = authHeader.substring(7); // Remove 'Bearer ' prefix
       
-      // Verify token
-      const decoded = verifyToken(token);
+      // Verify token  
+      const decoded = verifyAccessToken(token);
       
-      // Attach user data to request
-      request.user = {
-        userId: decoded.userId,
-        email: decoded.email,
-        username: decoded.username,
-      };
+      // Note: This plugin is deprecated
+      // The proper auth middleware fetches the full user from database
+      // This is kept for backward compatibility only
+      throw new Error('This auth plugin is deprecated. Use auth.middleware.ts instead');
     } catch (error: any) {
       return reply.status(401).send({
         success: false,

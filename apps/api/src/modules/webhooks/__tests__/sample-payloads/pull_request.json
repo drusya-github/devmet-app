@@ -1,0 +1,125 @@
+{
+  "action": "opened",
+  "number": 42,
+  "pull_request": {
+    "id": 987654321,
+    "node_id": "MDExOlB1bGxSZXF1ZXN0OTg3NjU0MzIx",
+    "html_url": "https://github.com/testuser/test-repo/pull/42",
+    "number": 42,
+    "state": "open",
+    "locked": false,
+    "title": "Add new feature",
+    "user": {
+      "login": "testuser",
+      "id": 1234567,
+      "avatar_url": "https://avatars.githubusercontent.com/u/1234567?v=4"
+    },
+    "body": "This PR adds a new feature to the application.\n\n## Changes\n- Added new feature module\n- Updated documentation\n- Added tests",
+    "created_at": "2023-11-10T12:00:00Z",
+    "updated_at": "2023-11-10T12:00:00Z",
+    "closed_at": null,
+    "merged_at": null,
+    "merge_commit_sha": null,
+    "assignee": null,
+    "assignees": [],
+    "requested_reviewers": [],
+    "requested_teams": [],
+    "labels": [],
+    "milestone": null,
+    "draft": false,
+    "commits_url": "https://github.com/testuser/test-repo/pull/42/commits",
+    "review_comments_url": "https://github.com/testuser/test-repo/pull/42/comments",
+    "review_comment_url": "https://github.com/testuser/test-repo/pull/comments{/number}",
+    "comments_url": "https://github.com/testuser/test-repo/issues/42/comments",
+    "statuses_url": "https://github.com/testuser/test-repo/statuses/a10867b14bb761a232cd80139fbd4c0d33264240",
+    "head": {
+      "label": "testuser:feature-branch",
+      "ref": "feature-branch",
+      "sha": "a10867b14bb761a232cd80139fbd4c0d33264240",
+      "user": {
+        "login": "testuser",
+        "id": 1234567
+      },
+      "repo": null
+    },
+    "base": {
+      "label": "testuser:main",
+      "ref": "main",
+      "sha": "b10867b14bb761a232cd80139fbd4c0d33264240",
+      "user": {
+        "login": "testuser",
+        "id": 1234567
+      },
+      "repo": null
+    },
+    "_links": {},
+    "author_association": "OWNER",
+    "auto_merge": null,
+    "active_lock_reason": null,
+    "merged": false,
+    "mergeable": true,
+    "rebaseable": true,
+    "mergeable_state": "clean",
+    "merged_by": null,
+    "comments": 0,
+    "review_comments": 0,
+    "maintainer_can_modify": true,
+    "commits": 3,
+    "additions": 145,
+    "deletions": 28,
+    "changed_files": 5
+  },
+  "repository": {
+    "id": 123456789,
+    "node_id": "MDEwOlJlcG9zaXRvcnkxMjM0NTY3ODk=",
+    "name": "test-repo",
+    "full_name": "testuser/test-repo",
+    "private": false,
+    "owner": {
+      "login": "testuser",
+      "id": 1234567,
+      "avatar_url": "https://avatars.githubusercontent.com/u/1234567?v=4",
+      "type": "User"
+    },
+    "html_url": "https://github.com/testuser/test-repo",
+    "description": "A test repository for webhook testing",
+    "fork": false,
+    "created_at": "2023-01-01T00:00:00Z",
+    "updated_at": "2023-11-10T00:00:00Z",
+    "pushed_at": "2023-11-10T12:00:00Z",
+    "git_url": "git://github.com/testuser/test-repo.git",
+    "ssh_url": "git@github.com:testuser/test-repo.git",
+    "clone_url": "https://github.com/testuser/test-repo.git",
+    "svn_url": "https://github.com/testuser/test-repo",
+    "homepage": null,
+    "size": 100,
+    "stargazers_count": 5,
+    "watchers_count": 5,
+    "language": "TypeScript",
+    "has_issues": true,
+    "has_projects": true,
+    "has_downloads": true,
+    "has_wiki": true,
+    "has_pages": false,
+    "forks_count": 2,
+    "archived": false,
+    "disabled": false,
+    "open_issues_count": 3,
+    "license": {
+      "key": "mit",
+      "name": "MIT License",
+      "spdx_id": "MIT",
+      "url": "https://api.github.com/licenses/mit"
+    },
+    "topics": ["typescript", "testing", "webhooks"],
+    "visibility": "public",
+    "default_branch": "main"
+  },
+  "sender": {
+    "login": "testuser",
+    "id": 1234567,
+    "avatar_url": "https://avatars.githubusercontent.com/u/1234567?v=4",
+    "type": "User"
+  }
+}
+

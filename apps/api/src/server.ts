@@ -96,6 +96,16 @@ async function registerRoutes(): Promise<void> {
     await repositoriesRoutes(fastify);
   }, { prefix: '/api/repositories' });
 
+  // Webhook routes (no rate limiting for GitHub webhooks)
+  await server.register(async (fastify) => {
+    const { webhooksRoutes } = await import('./modules/webhooks');
+    await webhooksRoutes(fastify);
+  }, { 
+    prefix: '/api/webhooks',
+    // Disable rate limiting for webhook endpoints
+    // GitHub webhooks need reliable delivery
+  });
+
   // Health check endpoint
   server.get<{ Reply: HealthCheckResponse }>('/health', async (request, reply) => {
     try {
@@ -178,11 +188,11 @@ async function registerRoutes(): Promise<void> {
     return {
       success: true,
       message: 'You are authenticated!',
-      user: {
-        id: request.user?.id,
-        email: request.user?.email,
-        name: request.user?.name,
-      },
+      user: request.user ? {
+        id: request.user.id,
+        email: request.user.email,
+        name: request.user.name,
+      } : null,
     };
   });
 
@@ -192,7 +202,7 @@ async function registerRoutes(): Promise<void> {
     return {
       success: true,
       authenticated: !!request.user,
-      userId: request.user?.id || null,
+      userId: request.user?.id ?? null,
     };
   });
 
@@ -209,6 +219,17 @@ async function registerRoutes(): Promise<void> {
 }
 
 /**
+ * Initialize server for testing (registers plugins and routes without starting)
+ */
+export async function initializeServer(): Promise<void> {
+  // Register plugins and middleware
+  await registerPlugins();
+
+  // Register routes
+  await registerRoutes();
+}
+
+/**
  * Start the server
  */
 async function start(): Promise<void> {
@@ -216,11 +237,8 @@ async function start(): Promise<void> {
     // Connect to database and Redis with retry logic
     await Promise.all([connectDatabase(), connectRedis()]);
 
-    // Register plugins and middleware
-    await registerPlugins();
-
-    // Register routes
-    await registerRoutes();
+    // Initialize server (plugins and routes)
+    await initializeServer();
 
     // Start background workers
     try {
@@ -331,5 +349,7 @@ process.on('unhandledRejection', (reason: any) => {
 // Export server for testing
 export { server };
 
-// Start the server
-start();
+// Start the server only if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  start();
+}

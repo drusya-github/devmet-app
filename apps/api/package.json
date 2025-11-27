@@ -20,7 +20,9 @@
     "format:check": "prettier --check \"src/**/*.ts\" \"prisma/**/*.ts\" \"*.{js,json,md}\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "worker:metrics": "ts-node src/modules/metrics/worker.bootstrap.ts",
+    "worker:metrics:dev": "ts-node-dev --respawn src/modules/metrics/worker.bootstrap.ts"
   },
   "keywords": [
     "devmetrics",

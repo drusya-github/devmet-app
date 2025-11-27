@@ -21,6 +21,8 @@ import {
   checkRedisHealth,
 } from './database';
 import authPlugin from './plugins/auth.plugin';
+import { startWebhookWorker } from './modules/webhooks';
+import { metricsRoutes, metricsAggregationRoutes, initializeMetricsJobs, shutdownMetricsJobs } from './modules/metrics';
 
 // Initialize Fastify
 const server = fastify({
@@ -73,7 +75,6 @@ async function registerPlugins(): Promise<void> {
   logger.info('All plugins registered successfully');
 }
 
-
 /**
  * Register application routes
  */
@@ -100,11 +101,17 @@ async function registerRoutes(): Promise<void> {
   await server.register(async (fastify) => {
     const { webhooksRoutes } = await import('./modules/webhooks');
     await webhooksRoutes(fastify);
-  }, { 
+  }, {
     prefix: '/api/webhooks',
     // Disable rate limiting for webhook endpoints
     // GitHub webhooks need reliable delivery
   });
+
+  // Metrics routes
+  await server.register(async (fastify) => {
+    await metricsRoutes(fastify);
+    await metricsAggregationRoutes(fastify);
+  }, { prefix: '/api/metrics' });
 
   // Health check endpoint
   server.get<{ Reply: HealthCheckResponse }>('/health', async (request, reply) => {
@@ -252,6 +259,23 @@ async function start(): Promise<void> {
       // Continue startup even if worker fails
     }
 
+    // start webhook worker
+    logger.info('Starting webhook worker...');
+    startWebhookWorker();
+    logger.info('Webhook worker started');
+
+    // Initialize metrics jobs (daily aggregation cron)
+    try {
+      logger.info('Initializing metrics jobs...');
+      await initializeMetricsJobs();
+      logger.info('Metrics jobs initialized successfully');
+    } catch (error) {
+      logger.warn('Failed to initialize metrics jobs', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      // Continue startup even if metrics jobs fail
+    }
+
     // Start listening (suppress automatic logging to avoid macOS network interface error)
     await server.listen({
       port: config.server.port,
@@ -303,6 +327,16 @@ async function shutdown(signal: string): Promise<void> {
       logger.info('Import worker stopped');
     } catch (error) {
       logger.warn('Error stopping import worker', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    // Shutdown metrics jobs
+    try {
+      await shutdownMetricsJobs();
+      logger.info('Metrics jobs shut down');
+    } catch (error) {
+      logger.warn('Error shutting down metrics jobs', {
         error: error instanceof Error ? error.message : String(error),
       });
     }

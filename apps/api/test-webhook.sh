@@ -4,6 +4,13 @@
 # Usage: ./test-webhook.sh [event_type]
 # Example: ./test-webhook.sh push
 
+# Load .env if present
+if [ -f .env ]; then
+  set -a
+  . .env
+  set +a
+fi
+
 set -e
 
 # Configuration
@@ -77,4 +84,7 @@ else
     echo -e "${RED}✗ Webhook failed with status $HTTP_CODE${NC}"
     exit 1
 fi
+
+
+
 

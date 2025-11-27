@@ -176,7 +176,7 @@ export class WebhookService {
           githubId: true,
           name: true,
           fullName: true,
-          orgId: true,
+          organizationId: true,
           webhookSecret: true,
         },
       });

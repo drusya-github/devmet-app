@@ -89,7 +89,7 @@ export async function repositoriesRoutes(fastify: FastifyInstance) {
   fastify.post<{
     Body: {
       githubRepoId: number;
-      orgId: string;
+      organizationId: string;
     };
   }>(
     '/',
@@ -152,7 +152,7 @@ export async function repositoriesRoutes(fastify: FastifyInstance) {
    */
   fastify.get<{
     Querystring: {
-      orgId: string;
+      organizationId: string;
     };
   }>(
     '/',
@@ -165,14 +165,14 @@ export async function repositoriesRoutes(fastify: FastifyInstance) {
           throw new AppError(401, 'Not authenticated');
         }
 
-        const orgId = (request.query as any).orgId;
-        if (!orgId || typeof orgId !== 'string') {
-          throw new AppError(400, 'orgId query parameter is required');
+        const organizationId = (request.query as any).organizationId;
+        if (!organizationId || typeof organizationId !== 'string') {
+          throw new AppError(400, 'organizationId query parameter is required');
         }
 
         // List connected repositories
         const repos = await repositoriesService.listConnectedRepositories(
-          orgId,
+          organizationId,
           request.user.id
         );
 
@@ -241,7 +241,7 @@ export async function repositoriesRoutes(fastify: FastifyInstance) {
         const userOrg = await prisma.userOrganization.findFirst({
           where: {
             userId: request.user.id,
-            orgId: repo.orgId,
+            organizationId: repo.organizationId,
           },
         });
 
@@ -253,7 +253,7 @@ export async function repositoriesRoutes(fastify: FastifyInstance) {
           success: true,
           data: {
             id: repo.id,
-            orgId: repo.orgId,
+            organizationId: repo.organizationId,
             githubId: repo.githubId.toString(),
             name: repo.name,
             fullName: repo.fullName,

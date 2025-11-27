@@ -1,8 +1,3 @@
-// DevMetrics Database Schema
-// Complete schema based on DATABASE-SCHEMA-RESEARCH-SPEC.md
-// Version: 1.0
-// Date: November 6, 2025
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,14 +7,419 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================
-// ENUMS
-// ============================================
+model User {
+  id                      String             @id @default(uuid())
+  email                   String             @unique
+  name                    String
+  avatarUrl               String?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  accessToken             String
+  deletedAt               DateTime?
+  lastLoginAt             DateTime?
+  lastLoginIp             String?
+  loginCount              Int                @default(0)
+  notificationPreferences Json?              @default("{}")
+  preferences             Json?              @default("{}")
+  refreshToken            String?
+  tokenExpiresAt          DateTime?
+  githubId                BigInt             @unique
+  apiKeys                 ApiKey[]
+  auditLogs               AuditLog[]
+  commits                 Commit[]           @relation("CommitAuthor")
+  developerMetrics        DeveloperMetric[]
+  issues                  Issue[]            @relation("IssueAuthor")
+  pullRequests            PullRequest[]      @relation("PRAuthor")
+  organizations           UserOrganization[]
+
+  @@index([githubId])
+  @@index([email])
+  @@map("users")
+}
+
+model Organization {
+  id                String             @id @default(uuid())
+  name              String
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  planLimits        Json?
+  settings          Json?
+  slug              String             @unique
+  githubId          BigInt?            @unique
+  planType          PlanType           @default(FREE)
+  apiKeys           ApiKey[]
+  auditLogs         AuditLog[]
+  developerMetrics  DeveloperMetric[]
+  notificationRules NotificationRule[]
+  repositories      Repository[]
+  teamMetrics       TeamMetric[]
+  members           UserOrganization[]
+
+  @@index([slug])
+  @@index([githubId])
+  @@map("organizations")
+}
+
+model UserOrganization {
+  userId         String
+  organizationId String
+  role           Role         @default(MEMBER)
+  joinedAt       DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([organizationId, role])
+  @@map("user_organizations")
+}
+
+model Repository {
+  id               String            @id @default(uuid())
+  organizationId   String
+  name             String
+  fullName         String
+  isPrivate        Boolean           @default(false)
+  language         String?
+  webhookSecret    String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  aiReviewEnabled  Boolean           @default(true)
+  description      String?
+  lastSyncedAt     DateTime?
+  sensitivityLevel SensitivityLevel  @default(NORMAL)
+  syncStatus       SyncStatus        @default(PENDING)
+  webhookRateLimit Int               @default(1000)
+  githubId         BigInt            @unique
+  webhookId        BigInt?
+  commits          Commit[]
+  events           Event[]
+  issues           Issue[]
+  pullRequests     PullRequest[]
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stats            RepositoryStats[]
+
+  @@index([organizationId])
+  @@index([githubId])
+  @@index([organizationId, syncStatus])
+  @@index([syncStatus])
+  @@map("repositories")
+}
+
+model RepositoryStats {
+  id                 String     @id @default(uuid())
+  date               DateTime   @db.Date
+  commits            Int        @default(0)
+  prsOpened          Int        @default(0)
+  prsMerged          Int        @default(0)
+  prsClosed          Int        @default(0)
+  issuesOpened       Int        @default(0)
+  issuesClosed       Int        @default(0)
+  createdAt          DateTime   @default(now())
+  filesChanged       Int        @default(0)
+  forks              Int?
+  linesAdded         Int        @default(0)
+  linesDeleted       Int        @default(0)
+  repoId             String
+  stars              Int?
+  topContributor     String?
+  uniqueContributors Int        @default(0)
+  updatedAt          DateTime   @updatedAt
+  watchers           Int?
+  repository         Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@unique([repoId, date])
+  @@index([repoId, date])
+  @@index([date])
+  @@map("repository_stats")
+}
+
+model Event {
+  id             String     @id @default(uuid())
+  type           String
+  authorId       String?
+  payload        Json
+  createdAt      DateTime   @default(now())
+  action         String?
+  authorGithubId BigInt?
+  processed      Boolean    @default(false)
+  processedAt    DateTime?
+  receivedAt     DateTime   @default(now())
+  repoId         String
+  githubId       BigInt     @unique
+  repository     Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@unique([githubId, repoId])
+  @@index([repoId, createdAt])
+  @@index([createdAt])
+  @@index([processed, createdAt])
+  @@index([repoId, type, createdAt])
+  @@map("events")
+}
+
+model Commit {
+  id             String     @id @default(uuid())
+  sha            String
+  message        String
+  authorId       String?
+  additions      Int        @default(0)
+  deletions      Int        @default(0)
+  createdAt      DateTime   @default(now())
+  authorEmail    String?
+  authorGithubId BigInt?
+  authorName     String?
+  committedAt    DateTime
+  githubId       String     @unique
+  repoId         String
+  author         User?      @relation("CommitAuthor", fields: [authorId], references: [id])
+  repository     Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@index([repoId, committedAt])
+  @@index([authorId, committedAt])
+  @@index([committedAt])
+  @@map("commits")
+}
+
+model PullRequest {
+  id             String     @id @default(uuid())
+  number         Int
+  title          String
+  authorId       String?
+  additions      Int        @default(0)
+  deletions      Int        @default(0)
+  filesChanged   Int        @default(0)
+  createdAt      DateTime
+  updatedAt      DateTime
+  closedAt       DateTime?
+  mergedAt       DateTime?
+  authorGithubId BigInt?
+  repoId         String
+  state          PRState    @default(OPEN)
+  githubId       BigInt     @unique
+  aiReviews      AIReview?
+  author         User?      @relation("PRAuthor", fields: [authorId], references: [id])
+  repository     Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@unique([repoId, number])
+  @@index([repoId, state, createdAt])
+  @@index([authorId, createdAt])
+  @@index([state, createdAt])
+  @@map("pull_requests")
+}
+
+model Issue {
+  id             String     @id @default(uuid())
+  number         Int
+  title          String
+  authorId       String?
+  createdAt      DateTime
+  closedAt       DateTime?
+  authorGithubId BigInt?
+  repoId         String
+  state          IssueState @default(OPEN)
+  githubId       BigInt     @unique
+  author         User?      @relation("IssueAuthor", fields: [authorId], references: [id])
+  repository     Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
+
+  @@unique([repoId, number])
+  @@index([repoId, state])
+  @@index([authorId, createdAt])
+  @@index([state, createdAt])
+  @@map("issues")
+}
+
+model DeveloperMetric {
+  id               String       @id @default(uuid())
+  userId           String
+  date             DateTime     @db.Date
+  commits          Int          @default(0)
+  prsOpened        Int          @default(0)
+  prsReviewed      Int          @default(0)
+  issuesResolved   Int          @default(0)
+  linesAdded       Int          @default(0)
+  linesDeleted     Int          @default(0)
+  avgCodeQuality   Float?
+  avgCommitTime    String?
+  avgIssueTime     Int          @default(0)
+  avgPrSize        Int          @default(0)
+  avgReviewTime    Int          @default(0)
+  bugFixed         Int          @default(0)
+  bugIntroduced    Int          @default(0)
+  commitsLateNight Int          @default(0)
+  commitsOnWeekend Int          @default(0)
+  createdAt        DateTime     @default(now())
+  filesChanged     Int          @default(0)
+  issuesOpened     Int          @default(0)
+  organizationId   String
+  prsClosed        Int          @default(0)
+  prsMerged        Int          @default(0)
+  reviewComments   Int          @default(0)
+  updatedAt        DateTime     @updatedAt
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId, date])
+  @@index([organizationId, date])
+  @@index([userId, date])
+  @@index([date])
+  @@map("developer_metrics")
+}
+
+model TeamMetric {
+  id                    String       @id @default(uuid())
+  organizationId        String
+  date                  DateTime     @db.Date
+  velocity              Int          @default(0)
+  deploymentFrequency   Int          @default(0)
+  buildSuccessRate      Float?
+  activeContributors    Int          @default(0)
+  avgPrCycleTime        Int          @default(0)
+  avgPrQueueTime        Int          @default(0)
+  avgReviewTime         Int          @default(0)
+  changeFailureRate     Float?
+  codeQualityScore      Float?
+  createdAt             DateTime     @default(now())
+  deploymentSuccessRate Float?
+  issueBacklog          Int          @default(0)
+  knowledgeDistribution Float?
+  meanTimeToRecovery    Int?
+  prQueueLength         Int          @default(0)
+  prReviewCoverage      Float?
+  testCoverage          Float?
+  totalCommits          Int          @default(0)
+  totalIssuesClosed     Int          @default(0)
+  totalPrsMerged        Int          @default(0)
+  totalPrsOpened        Int          @default(0)
+  updatedAt             DateTime     @updatedAt
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, date])
+  @@index([organizationId, date])
+  @@index([date])
+  @@map("team_metrics")
+}
+
+model AIReview {
+  id                  String      @id @default(uuid())
+  riskScore           Int
+  suggestions         Json
+  createdAt           DateTime    @default(now())
+  analysis            String
+  bugsPotential       Int         @default(0)
+  githubCommentId     BigInt?
+  isSharedToGithub    Boolean     @default(false)
+  modelVersion        String      @default("claude-3-sonnet")
+  performanceConcerns Int         @default(0)
+  prId                String      @unique
+  processingTime      Int?
+  qualityIssues       Int         @default(0)
+  tokensUsed          Int?
+  updatedAt           DateTime    @updatedAt
+  visibility          String      @default("team")
+  complexity          String
+  securityIssues      Int         @default(0)
+  pullRequest         PullRequest @relation(fields: [prId], references: [id], onDelete: Cascade)
+
+  @@index([prId])
+  @@index([riskScore])
+  @@index([createdAt])
+  @@map("ai_reviews")
+}
+
+model NotificationRule {
+  id             String            @id @default(uuid())
+  organizationId String
+  type           String
+  conditions     Json
+  channels       String[]
+  createdAt      DateTime          @default(now())
+  channelConfig  Json?
+  createdBy      String
+  isActive       Boolean           @default(true)
+  name           String
+  updatedAt      DateTime          @updatedAt
+  logs           NotificationLog[]
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([organizationId, isActive])
+  @@index([type, isActive])
+  @@map("notification_rules")
+}
+
+model NotificationLog {
+  id           String             @id @default(uuid())
+  ruleId       String
+  triggeredAt  DateTime
+  deliveredAt  DateTime?
+  channel      String
+  failedReason String?
+  message      String
+  metadata     Json?
+  recipientId  String
+  title        String
+  status       NotificationStatus
+  rule         NotificationRule   @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, triggeredAt])
+  @@index([ruleId, triggeredAt])
+  @@index([status, triggeredAt])
+  @@map("notification_logs")
+}
+
+model ApiKey {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String
+  name           String
+  keyHash        String       @unique
+  lastFour       String
+  scopes         String[]
+  rateLimit      Int          @default(100)
+  lastUsedAt     DateTime?
+  totalRequests  Int          @default(0)
+  expiresAt      DateTime?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([keyHash])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([organizationId, isActive])
+  @@map("api_keys")
+}
+
+model AuditLog {
+  id             String        @id @default(uuid())
+  userId         String
+  organizationId String?
+  action         String
+  resource       String?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  requestId      String?
+  status         String
+  errorMessage   String?
+  createdAt      DateTime      @default(now())
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
 
 enum Role {
-  ADMIN // Full control
-  MEMBER // Standard developer access
-  VIEWER // Read-only
+  ADMIN
+  MEMBER
+  VIEWER
 }
 
 enum PlanType {
@@ -40,17 +440,17 @@ enum IssueState {
 }
 
 enum SyncStatus {
-  PENDING // Waiting to start
-  SYNCING // In progress
-  ACTIVE // Sync complete, receiving webhooks
-  ERROR // Sync failed
-  PAUSED // Manually paused
+  PENDING
+  SYNCING
+  ACTIVE
+  ERROR
+  PAUSED
 }
 
 enum SensitivityLevel {
-  NORMAL // Standard repos - full analysis
-  SENSITIVE // Internal tools - limited analysis
-  CONFIDENTIAL // Sensitive data - no AI analysis
+  NORMAL
+  SENSITIVE
+  CONFIDENTIAL
 }
 
 enum NotificationStatus {
@@ -58,614 +458,4 @@ enum NotificationStatus {
   FAILED
   BOUNCED
   PENDING
-}
-
-// ============================================
-// CORE: Users & Organizations
-// ============================================
-
-model User {
-  id        String  @id @default(uuid())
-  githubId  BigInt  @unique
-  email     String  @unique
-  name      String
-  avatarUrl String?
-
-  // Authentication & Tokens (encrypted at application level)
-  accessToken    String    @db.Text // Encrypted GitHub OAuth token
-  refreshToken   String?   @db.Text // Encrypted refresh token
-  tokenExpiresAt DateTime?
-
-  // User Preferences & Settings
-  preferences             Json? @default("{}") // theme, timezone, language, etc.
-  notificationPreferences Json? @default("{}") // muted types, quiet hours, etc.
-
-  // Session & Activity
-  lastLoginAt DateTime?
-  lastLoginIp String?
-  loginCount  Int       @default(0)
-
-  // GDPR Compliance - Soft Delete
-  deletedAt DateTime? // Soft delete timestamp (null = active, set = deleted)
-
-  // Metadata
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  organizations    UserOrganization[]
-  developerMetrics DeveloperMetric[]
-  commits          Commit[]           @relation("CommitAuthor")
-  pullRequests     PullRequest[]      @relation("PRAuthor")
-  issues           Issue[]            @relation("IssueAuthor")
-  apiKeys          ApiKey[]
-  auditLogs        AuditLog[]
-
-  @@index([githubId])
-  @@index([email])
-  @@map("users")
-}
-
-model Organization {
-  id       String  @id @default(uuid())
-  name     String
-  slug     String  @unique // URL-friendly: "techcorp"
-  githubId BigInt? @unique // GitHub org ID (null for personal orgs)
-
-  // Subscription & Billing
-  planType   PlanType @default(FREE)
-  planLimits Json? // { maxRepos: 10, maxMembers: 5, etc. }
-
-  // Settings
-  settings Json? // Org preferences, feature flags
-
-  // Metadata
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  members           UserOrganization[]
-  repositories      Repository[]
-  teamMetrics       TeamMetric[]
-  notificationRules NotificationRule[]
-  apiKeys           ApiKey[]
-  auditLogs         AuditLog[]
-  developerMetrics  DeveloperMetric[]
-
-  @@index([slug])
-  @@index([githubId])
-  @@map("organizations")
-}
-
-model UserOrganization {
-  userId   String
-  orgId    String
-  role     Role     @default(MEMBER)
-  joinedAt DateTime @default(now())
-
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-
-  @@id([userId, orgId])
-  @@index([userId])
-  @@index([orgId])
-  @@index([orgId, role])
-  @@map("user_organizations")
-}
-
-// ============================================
-// REPOSITORIES
-// ============================================
-
-model Repository {
-  id    String @id @default(uuid())
-  orgId String
-
-  // GitHub Info
-  githubId    BigInt  @unique
-  name        String // "devmetrics-api"
-  fullName    String // "techcorp/devmetrics-api"
-  description String?
-  language    String? // Primary language
-  isPrivate   Boolean @default(false)
-
-  // Webhook Configuration
-  webhookId     BigInt? // GitHub webhook ID
-  webhookSecret String? // For signature verification
-
-  // Sync Status
-  lastSyncedAt DateTime?
-  syncStatus   SyncStatus @default(PENDING)
-
-  // Settings
-  aiReviewEnabled  Boolean          @default(true)
-  sensitivityLevel SensitivityLevel @default(NORMAL)
-  webhookRateLimit Int              @default(1000) // Events per hour
-
-  // Metadata
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  organization Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  stats        RepositoryStats[]
-  events       Event[]
-  commits      Commit[]
-  pullRequests PullRequest[]
-  issues       Issue[]
-
-  @@index([orgId])
-  @@index([githubId])
-  @@index([orgId, syncStatus])
-  @@index([syncStatus])
-  @@map("repositories")
-}
-
-model RepositoryStats {
-  id     String   @id @default(uuid())
-  repoId String
-  date   DateTime @db.Date
-
-  // Activity
-  commits      Int @default(0)
-  prsOpened    Int @default(0)
-  prsMerged    Int @default(0)
-  prsClosed    Int @default(0)
-  issuesOpened Int @default(0)
-  issuesClosed Int @default(0)
-
-  // Contributors
-  uniqueContributors Int     @default(0)
-  topContributor     String? // User ID
-
-  // Code Changes
-  linesAdded   Int @default(0)
-  linesDeleted Int @default(0)
-  filesChanged Int @default(0)
-
-  // Stars & Engagement (if public)
-  stars    Int?
-  forks    Int?
-  watchers Int?
-
-  // Metadata
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  repository Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
-
-  @@unique([repoId, date])
-  @@index([repoId, date])
-  @@index([date])
-  @@map("repository_stats")
-}
-
-// ============================================
-// EVENTS & ACTIVITY
-// ============================================
-
-model Event {
-  id     String @id @default(uuid())
-  repoId String
-
-  // Event Classification
-  type     String // "push", "pull_request", "issues", etc.
-  action   String? // "opened", "closed", "synchronize"
-  githubId BigInt  @unique // GitHub event ID (for deduplication)
-
-  // Actor
-  authorId       String? // User ID (if known)
-  authorGithubId BigInt? // GitHub user ID
-
-  // Payload
-  payload Json // Full GitHub webhook payload
-
-  // Processing Status
-  processed   Boolean   @default(false)
-  processedAt DateTime?
-
-  // Timestamps
-  createdAt  DateTime @default(now())
-  receivedAt DateTime @default(now()) // When webhook received
-
-  // Relations
-  repository Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
-
-  @@unique([githubId, repoId])
-  @@index([repoId, createdAt])
-  @@index([createdAt])
-  @@index([processed, createdAt])
-  @@index([repoId, type, createdAt])
-  @@map("events")
-}
-
-model Commit {
-  id     String @id @default(uuid())
-  repoId String
-
-  // Commit Info
-  githubId String @unique // Commit SHA
-  sha      String
-  message  String @db.Text
-
-  // Author
-  authorId       String? // User ID (if mapped)
-  authorGithubId BigInt? // GitHub author ID
-  authorName     String? // Git author name
-  authorEmail    String? // Git author email
-
-  // Changes
-  additions Int @default(0)
-  deletions Int @default(0)
-
-  // Timestamps
-  committedAt DateTime // When commit was made
-  createdAt   DateTime @default(now())
-
-  // Relations
-  repository Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  author     User?      @relation("CommitAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-
-  @@index([repoId, committedAt])
-  @@index([authorId, committedAt])
-  @@index([committedAt])
-  @@map("commits")
-}
-
-model PullRequest {
-  id     String @id @default(uuid())
-  repoId String
-
-  // PR Info
-  githubId BigInt  @unique
-  number   Int
-  title    String
-  state    PRState @default(OPEN)
-
-  // Author
-  authorId       String? // User ID (if mapped)
-  authorGithubId BigInt? // GitHub author ID
-
-  // Changes
-  additions    Int @default(0)
-  deletions    Int @default(0)
-  filesChanged Int @default(0)
-
-  // Timestamps
-  mergedAt  DateTime?
-  closedAt  DateTime?
-  createdAt DateTime
-  updatedAt DateTime
-
-  // Relations
-  repository Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  author     User?      @relation("PRAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-  aiReviews  AIReview[]
-
-  @@unique([repoId, number])
-  @@index([repoId, state, createdAt])
-  @@index([authorId, createdAt])
-  @@index([state, createdAt])
-  @@map("pull_requests")
-}
-
-model Issue {
-  id     String @id @default(uuid())
-  repoId String
-
-  // Issue Info
-  githubId BigInt     @unique
-  number   Int
-  title    String
-  state    IssueState @default(OPEN)
-
-  // Author
-  authorId       String? // User ID (if mapped)
-  authorGithubId BigInt? // GitHub author ID
-
-  // Timestamps
-  closedAt  DateTime?
-  createdAt DateTime
-
-  // Relations
-  repository Repository @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  author     User?      @relation("IssueAuthor", fields: [authorId], references: [id], onDelete: SetNull)
-
-  @@unique([repoId, number])
-  @@index([repoId, state])
-  @@index([authorId, createdAt])
-  @@index([state, createdAt])
-  @@map("issues")
-}
-
-// ============================================
-// METRICS & ANALYTICS
-// ============================================
-
-model DeveloperMetric {
-  id     String   @id @default(uuid())
-  userId String
-  orgId  String // Scoped to organization!
-  date   DateTime @db.Date
-
-  // Commit Metrics
-  commits      Int @default(0)
-  linesAdded   Int @default(0)
-  linesDeleted Int @default(0)
-  filesChanged Int @default(0)
-
-  // Pull Request Metrics
-  prsOpened Int @default(0)
-  prsMerged Int @default(0)
-  prsClosed Int @default(0)
-  avgPrSize Int @default(0) // Lines changed
-
-  // Review Metrics
-  prsReviewed    Int @default(0)
-  reviewComments Int @default(0)
-  avgReviewTime  Int @default(0) // Minutes
-
-  // Issue Metrics
-  issuesOpened   Int @default(0)
-  issuesResolved Int @default(0)
-  avgIssueTime   Int @default(0) // Hours to resolve
-
-  // Activity Patterns
-  commitsOnWeekend Int     @default(0)
-  commitsLateNight Int     @default(0) // After 10 PM
-  avgCommitTime    String? // "14:30" (local time)
-
-  // Quality Indicators
-  avgCodeQuality Float? // 0-100 from AI reviews
-  bugIntroduced  Int    @default(0)
-  bugFixed       Int    @default(0)
-
-  // Metadata
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, orgId, date])
-  @@index([orgId, date])
-  @@index([userId, date])
-  @@index([date])
-  @@map("developer_metrics")
-}
-
-model TeamMetric {
-  id    String   @id @default(uuid())
-  orgId String
-  date  DateTime @db.Date
-
-  // Velocity Metrics
-  velocity       Int @default(0) // PRs merged or story points
-  avgPrCycleTime Int @default(0) // Hours from open to merge
-  avgReviewTime  Int @default(0) // Hours from open to first review
-
-  // Throughput
-  totalCommits      Int @default(0)
-  totalPrsOpened    Int @default(0)
-  totalPrsMerged    Int @default(0)
-  totalIssuesClosed Int @default(0)
-
-  // Quality Metrics
-  buildSuccessRate Float? // 0-100%
-  testCoverage     Float? // 0-100%
-  codeQualityScore Float? // 0-100 from AI
-
-  // Deployment Metrics
-  deploymentFrequency   Int    @default(0) // Deploys per day
-  deploymentSuccessRate Float? // 0-100%
-  meanTimeToRecovery    Int? // Minutes (MTTR)
-  changeFailureRate     Float? // 0-100%
-
-  // Team Health
-  activeContributors    Int    @default(0) // Unique committers
-  prReviewCoverage      Float? // % PRs with >=2 reviews
-  knowledgeDistribution Float? // Inverse of bus factor
-
-  // Bottlenecks
-  prQueueLength  Int @default(0) // Open PRs
-  avgPrQueueTime Int @default(0) // Hours waiting
-  issueBacklog   Int @default(0) // Open issues
-
-  // Metadata
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-
-  @@unique([orgId, date])
-  @@index([orgId, date])
-  @@index([date])
-  @@map("team_metrics")
-}
-
-// ============================================
-// AI & AUTOMATION
-// ============================================
-
-model AIReview {
-  id   String @id @default(uuid())
-  prId String @unique // One review per PR
-
-  // Analysis Results
-  analysis    String @db.Text // Markdown formatted analysis
-  suggestions Json // Array of specific suggestions
-  riskScore   Int // 0-100 (higher = riskier)
-  complexity  String // "low", "medium", "high", "very_high"
-
-  // Categories
-  bugsPotential       Int @default(0) // Count of potential bugs
-  securityIssues      Int @default(0) // Count of security issues
-  qualityIssues       Int @default(0) // Code quality problems
-  performanceConcerns Int @default(0) // Performance issues
-
-  // Metadata
-  modelVersion   String @default("claude-3-sonnet") // AI model used
-  tokensUsed     Int? // For cost tracking
-  processingTime Int? // Milliseconds
-
-  // Visibility
-  visibility       String  @default("team") // "private", "team", "public"
-  isSharedToGithub Boolean @default(false) // Author shared to GH?
-  githubCommentId  BigInt? // If shared, comment ID
-
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  pullRequest PullRequest @relation(fields: [prId], references: [id], onDelete: Cascade)
-
-  @@index([prId])
-  @@index([riskScore])
-  @@index([createdAt])
-  @@map("ai_reviews")
-}
-
-// ============================================
-// NOTIFICATIONS
-// ============================================
-
-model NotificationRule {
-  id        String @id @default(uuid())
-  orgId     String
-  createdBy String // User ID who created the rule
-
-  // Rule Definition
-  name       String // "PR Review Reminder"
-  type       String // NotificationType enum value
-  conditions Json // { "hours": 24, "repos": ["all"], "branch": "main" }
-  channels   String[] // ["slack", "email"]
-
-  // Target Configuration
-  channelConfig Json? // { "slackWebhook": "https://...", "emailRecipients": [...] }
-
-  // Status
-  isActive Boolean @default(true)
-
-  // Metadata
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  organization Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  logs         NotificationLog[]
-
-  @@index([orgId])
-  @@index([orgId, isActive])
-  @@index([type, isActive])
-  @@map("notification_rules")
-}
-
-model NotificationLog {
-  id     String @id @default(uuid())
-  ruleId String
-
-  // Delivery Info
-  recipientId String // User ID
-  channel     String // Which channel used
-  status      NotificationStatus // "sent", "failed", "bounced"
-
-  // Content
-  title    String
-  message  String @db.Text
-  metadata Json? // Event data, links, etc.
-
-  // Timing
-  triggeredAt  DateTime
-  deliveredAt  DateTime?
-  failedReason String?
-
-  // Relations
-  rule NotificationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-
-  @@index([recipientId, triggeredAt])
-  @@index([ruleId, triggeredAt])
-  @@index([status, triggeredAt])
-  @@map("notification_logs")
-}
-
-// ============================================
-// SECURITY & INTEGRATION
-// ============================================
-
-model ApiKey {
-  id     String @id @default(uuid())
-  userId String
-  orgId  String // Scoped to organization
-
-  // Key Management
-  name     String // "Jenkins CI", "Mobile App"
-  keyHash  String @unique // bcrypt hash of actual key
-  lastFour String // Last 4 chars for identification ("...x7Qa")
-
-  // Permissions
-  scopes String[] // ["read:metrics", "write:webhooks", "read:repos"]
-
-  // Rate Limiting
-  rateLimit Int @default(100) // Requests per minute
-
-  // Usage Tracking
-  lastUsedAt    DateTime?
-  totalRequests Int       @default(0)
-
-  // Lifecycle
-  expiresAt DateTime? // Optional expiration
-  isActive  Boolean   @default(true)
-
-  // Metadata
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-
-  @@index([keyHash])
-  @@index([userId])
-  @@index([orgId])
-  @@index([orgId, isActive])
-  @@map("api_keys")
-}
-
-model AuditLog {
-  id     String  @id @default(uuid())
-  userId String
-  orgId  String? // If action scoped to org
-
-  // Action
-  action   String // "view_metrics", "connect_repo", "delete_data"
-  resource String? // "repository:uuid", "user:uuid", "metrics:team"
-
-  // Details
-  metadata Json? // Additional context
-
-  // Request Info
-  ipAddress String?
-  userAgent String?
-  requestId String? // Correlate with logs
-
-  // Outcome
-  status       String // "success", "failed", "unauthorized"
-  errorMessage String?
-
-  // Timestamp
-  createdAt DateTime @default(now())
-
-  // Relations
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt])
-  @@index([orgId, createdAt])
-  @@index([action, createdAt])
-  @@index([createdAt])
-  @@map("audit_logs")
 }

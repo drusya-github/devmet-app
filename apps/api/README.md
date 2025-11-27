@@ -28,6 +28,7 @@ npm run db:studio
 ## 📊 What's Configured
 
 ### Database
+
 - ✅ PostgreSQL 14.19 installed and running
 - ✅ Database `devmetrics` created
 - ✅ User `devmetrics_user` configured
@@ -35,11 +36,13 @@ npm run db:studio
 - ✅ Prisma Client generated
 
 ### Services
+
 - ✅ Redis 8.2.1 running
 - ✅ Node.js 18.20.8
 - ✅ TypeScript 5.9.3
 
 ### Dependencies
+
 - ✅ 476 packages installed
 - ✅ Fastify (API framework)
 - ✅ Prisma (ORM)
@@ -86,6 +89,7 @@ apps/api/
 ## 🗄️ Database Schema
 
 13 models configured:
+
 - User, Organization, UserOrganization
 - Repository, RepositoryStats
 - Event, Commit
@@ -97,6 +101,7 @@ apps/api/
 ## 🔐 Environment Variables
 
 All configured in `.env`:
+
 - ✅ Database connection
 - ✅ Redis connection
 - ✅ GitHub OAuth credentials
@@ -115,6 +120,7 @@ curl http://localhost:3001/api
 ```
 
 Expected response:
+
 ```json
 {
   "status": "ok",
@@ -161,26 +167,31 @@ npm run test:coverage   # Coverage report
 ## 🔌 API Endpoints (To Be Implemented)
 
 ### Authentication
+
 - `POST /api/auth/github` - GitHub OAuth
 - `GET /api/auth/callback` - OAuth callback
 - `POST /api/auth/logout` - Logout
 
 ### Repositories
+
 - `GET /api/repositories` - List repositories
 - `POST /api/repositories` - Connect repository
 - `GET /api/repositories/:id` - Get repository details
 
 ### Metrics
+
 - `GET /api/metrics/velocity` - Team velocity
 - `GET /api/metrics/cycle-time` - PR cycle time
 - `GET /api/metrics/deployment` - Deployment metrics
 
 ### Webhooks
+
 - `POST /api/webhooks/github` - GitHub webhook receiver
 
 ## 🆘 Troubleshooting
 
 ### Server won't start
+
 ```bash
 # Check services are running
 brew services list | grep -E "(postgresql|redis)"
@@ -191,6 +202,7 @@ brew services start redis
 ```
 
 ### Database connection failed
+
 ```bash
 # Test connection manually
 psql -U devmetrics_user -d devmetrics -h localhost
@@ -198,6 +210,7 @@ psql -U devmetrics_user -d devmetrics -h localhost
 ```
 
 ### TypeScript errors
+
 ```bash
 # Regenerate Prisma Client
 npm run db:generate
@@ -222,5 +235,3 @@ See main project README and documentation files for complete guides.
 ---
 
 **Ready to build!** 🚀 Follow `Backend.md` for implementation details.
-
-

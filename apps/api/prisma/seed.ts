@@ -148,10 +148,10 @@ async function main() {
 
   await prisma.userOrganization.createMany({
     data: [
-      { userId: user1.id, orgId: techCorp.id, role: Role.ADMIN },
-      { userId: user2.id, orgId: techCorp.id, role: Role.MEMBER },
-      { userId: user1.id, orgId: startupInc.id, role: Role.VIEWER },
-      { userId: user3.id, orgId: personalOrg.id, role: Role.ADMIN },
+      { userId: user1.id, organizationId: techCorp.id, role: Role.ADMIN },
+      { userId: user2.id, organizationId: techCorp.id, role: Role.MEMBER },
+      { userId: user1.id, organizationId: startupInc.id, role: Role.VIEWER },
+      { userId: user3.id, organizationId: personalOrg.id, role: Role.ADMIN },
     ],
   });
 
@@ -162,7 +162,7 @@ async function main() {
 
   const repo1 = await prisma.repository.create({
     data: {
-      orgId: techCorp.id,
+      organizationId: techCorp.id,
       githubId: BigInt(111001),
       name: 'devmetrics-api',
       fullName: 'techcorp/devmetrics-api',
@@ -181,7 +181,7 @@ async function main() {
 
   const repo2 = await prisma.repository.create({
     data: {
-      orgId: techCorp.id,
+      organizationId: techCorp.id,
       githubId: BigInt(111002),
       name: 'devmetrics-frontend',
       fullName: 'techcorp/devmetrics-frontend',
@@ -197,7 +197,7 @@ async function main() {
 
   const repo3 = await prisma.repository.create({
     data: {
-      orgId: personalOrg.id,
+      organizationId: personalOrg.id,
       githubId: BigInt(111003),
       name: 'personal-project',
       fullName: 'charlie/personal-project',
@@ -213,7 +213,7 @@ async function main() {
 
   const repo4 = await prisma.repository.create({
     data: {
-      orgId: techCorp.id,
+      organizationId: techCorp.id,
       githubId: BigInt(111004),
       name: 'mobile-app',
       fullName: 'techcorp/mobile-app',
@@ -231,7 +231,7 @@ async function main() {
 
   const repo5 = await prisma.repository.create({
     data: {
-      orgId: techCorp.id,
+      organizationId: techCorp.id,
       githubId: BigInt(111005),
       name: 'infrastructure',
       fullName: 'techcorp/infrastructure',
@@ -247,7 +247,7 @@ async function main() {
 
   const repo6 = await prisma.repository.create({
     data: {
-      orgId: techCorp.id,
+      organizationId: techCorp.id,
       githubId: BigInt(111006),
       name: 'documentation',
       fullName: 'techcorp/documentation',
@@ -263,7 +263,7 @@ async function main() {
 
   const repo7 = await prisma.repository.create({
     data: {
-      orgId: startupInc.id,
+      organizationId: startupInc.id,
       githubId: BigInt(111007),
       name: 'payment-service',
       fullName: 'startup-inc/payment-service',
@@ -279,7 +279,7 @@ async function main() {
 
   const repo8 = await prisma.repository.create({
     data: {
-      orgId: startupInc.id,
+      organizationId: startupInc.id,
       githubId: BigInt(111008),
       name: 'legacy-monolith',
       fullName: 'startup-inc/legacy-monolith',
@@ -295,7 +295,7 @@ async function main() {
 
   const repo9 = await prisma.repository.create({
     data: {
-      orgId: personalOrg.id,
+      organizationId: personalOrg.id,
       githubId: BigInt(111009),
       name: 'blog',
       fullName: 'charlie/blog',
@@ -1063,7 +1063,7 @@ async function main() {
     // Developer Metrics for user1
     developerMetricsData.push({
       userId: user1.id,
-      orgId: techCorp.id,
+      organizationId: techCorp.id,
       date: date,
       commits: Math.floor((3 + Math.random() * 5) * activityMultiplier),
       linesAdded: Math.floor((150 + Math.random() * 300) * activityMultiplier),
@@ -1085,7 +1085,7 @@ async function main() {
     // Developer Metrics for user2
     developerMetricsData.push({
       userId: user2.id,
-      orgId: techCorp.id,
+      organizationId: techCorp.id,
       date: date,
       commits: Math.floor((2 + Math.random() * 4) * activityMultiplier),
       linesAdded: Math.floor((100 + Math.random() * 200) * activityMultiplier),
@@ -1106,7 +1106,7 @@ async function main() {
     if (i < 15 && !isWeekend) {
       developerMetricsData.push({
         userId: user3.id,
-        orgId: personalOrg.id,
+        organizationId: personalOrg.id,
         date: date,
         commits: Math.floor(1 + Math.random() * 3),
         linesAdded: Math.floor(80 + Math.random() * 200),
@@ -1120,7 +1120,7 @@ async function main() {
 
     // Team Metrics for TechCorp
     teamMetricsData.push({
-      orgId: techCorp.id,
+      organizationId: techCorp.id,
       date: date,
       velocity: Math.floor((10 + Math.random() * 15) * activityMultiplier),
       avgPrCycleTime: Math.floor(12 + Math.random() * 12), // 12-24 hours
@@ -1212,7 +1212,7 @@ async function main() {
 
   const notifRule1 = await prisma.notificationRule.create({
     data: {
-      orgId: techCorp.id,
+      organizationId: techCorp.id,
       createdBy: user1.id,
       name: 'PR Review Reminder',
       type: 'pr_waiting_review',
@@ -1232,7 +1232,7 @@ async function main() {
 
   const notifRule2 = await prisma.notificationRule.create({
     data: {
-      orgId: techCorp.id,
+      organizationId: techCorp.id,
       createdBy: user1.id,
       name: 'Build Failure Alert',
       type: 'build_failed',
@@ -1280,7 +1280,7 @@ async function main() {
   await prisma.apiKey.create({
     data: {
       userId: user1.id,
-      orgId: techCorp.id,
+      organizationId: techCorp.id,
       name: 'Jenkins CI',
       keyHash: '$2b$10$' + crypto.randomBytes(40).toString('hex').substring(0, 53), // Mock bcrypt hash
       lastFour: 'x7Qa',
@@ -1301,7 +1301,7 @@ async function main() {
     data: [
       {
         userId: user1.id,
-        orgId: techCorp.id,
+        organizationId: techCorp.id,
         action: 'repo_connected',
         resource: `repository:${repo1.id}`,
         metadata: {
@@ -1314,7 +1314,7 @@ async function main() {
       },
       {
         userId: user1.id,
-        orgId: techCorp.id,
+        organizationId: techCorp.id,
         action: 'user_invited',
         resource: `user:${user2.id}`,
         metadata: {
@@ -1326,7 +1326,7 @@ async function main() {
       },
       {
         userId: user1.id,
-        orgId: techCorp.id,
+        organizationId: techCorp.id,
         action: 'api_key_created',
         metadata: {
           keyName: 'Jenkins CI',

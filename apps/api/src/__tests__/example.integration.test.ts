@@ -215,13 +215,13 @@ describe('Example Integration Tests', () => {
       const userOrg = await prisma.userOrganization.create({
         data: {
           userId: user.id,
-          orgId: org.id,
+          organizationId: org.id,
           role: 'MEMBER',
         },
       });
 
       expect(userOrg.userId).toBe(user.id);
-      expect(userOrg.orgId).toBe(org.id);
+      expect(userOrg.organizationId).toBe(org.id);
       expect(userOrg.role).toBe('MEMBER');
     });
 
@@ -250,7 +250,7 @@ describe('Example Integration Tests', () => {
       await prisma.userOrganization.create({
         data: {
           userId: user.id,
-          orgId: org.id,
+          organizationId: org.id,
           role: 'ADMIN',
         },
       });
@@ -292,13 +292,13 @@ describe('Example Integration Tests', () => {
           githubId: BigInt(99999),
           name: 'test-repo',
           fullName: 'repo-org/test-repo',
-          orgId: org.id,
+          organizationId: org.id,
           syncStatus: 'ACTIVE',
         },
       });
 
       expect(repo.id).toBeDefined();
-      expect(repo.orgId).toBe(org.id);
+      expect(repo.organizationId).toBe(org.id);
       expect(repo.syncStatus).toBe('ACTIVE');
     });
 
@@ -319,7 +319,7 @@ describe('Example Integration Tests', () => {
           githubId: BigInt(99999),
           name: 'cascade-repo',
           fullName: 'cascade-org/cascade-repo',
-          orgId: org.id,
+          organizationId: org.id,
           syncStatus: 'ACTIVE',
         },
       });
@@ -331,7 +331,7 @@ describe('Example Integration Tests', () => {
 
       // Verify repository was also deleted
       const repos = await prisma.repository.findMany({
-        where: { orgId: org.id },
+        where: { organizationId: org.id },
       });
 
       expect(repos).toHaveLength(0);

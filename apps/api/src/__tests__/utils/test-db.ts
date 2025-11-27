@@ -123,7 +123,7 @@ export async function seedTestDatabase(data?: {
           githubId: BigInt(300000 + i),
           name: `test-repo-${i}`,
           fullName: `test-org-0/test-repo-${i}`,
-          orgId: organizations[0].id,
+          organizationId: organizations[0].id,
           syncStatus: 'ACTIVE',
         },
       })

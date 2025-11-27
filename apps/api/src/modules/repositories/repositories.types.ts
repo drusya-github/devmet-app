@@ -55,7 +55,7 @@ export interface RepositoryListResponse {
  */
 export interface ConnectRepositoryRequest {
   githubRepoId: number;
-  orgId: string;
+  organizationId: string;
 }
 
 /**
@@ -63,7 +63,7 @@ export interface ConnectRepositoryRequest {
  */
 export interface BulkConnectRepositoriesRequest {
   githubRepoIds: number[];
-  orgId: string;
+  organizationId: string;
 }
 
 /**
@@ -71,7 +71,7 @@ export interface BulkConnectRepositoriesRequest {
  */
 export interface ConnectedRepository {
   id: string;
-  orgId: string;
+  organizationId: string;
   githubId: string;
   name: string;
   fullName: string;

@@ -21,6 +21,15 @@ declare module 'fastify' {
     requireRole: (roles: Role[]) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
     requireOrganization: () => (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
+
+  interface FastifySchema {
+    description?: string;
+    summary?: string;
+    tags?: string[];
+    // add other OpenAPI/Swagger-like fields here if you use them:
+    // operationId?: string;
+    // deprecated?: boolean;
+  }
 }
 
 export {};

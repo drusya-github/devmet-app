@@ -90,7 +90,7 @@ export const createMockRepository = (overrides?: Partial<Repository>): Repositor
 
   return {
     id,
-    orgId: generateId(),
+    organizationId: generateId(),
     githubId: BigInt(300000 + num),
     name,
     fullName: `test-org/${name}`,
@@ -196,7 +196,7 @@ export const createMockDeveloperMetric = (
   return {
     id,
     userId: generateId(),
-    orgId: generateId(),
+    organizationId: generateId(),
     date: new Date(),
     commits: Math.floor(Math.random() * 20) + 1,
     linesAdded: Math.floor(Math.random() * 500) + 50,
@@ -232,7 +232,7 @@ export const createMockTeamMetric = (overrides?: Partial<TeamMetric>): TeamMetri
 
   return {
     id,
-    orgId: generateId(),
+    organizationId: generateId(),
     date: new Date(),
     velocity: Math.floor(Math.random() * 50) + 10,
     avgPrCycleTime: Math.floor(Math.random() * 72) + 12, // hours

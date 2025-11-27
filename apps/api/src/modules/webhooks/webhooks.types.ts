@@ -372,7 +372,7 @@ export interface WebhookValidationResult {
     githubId: bigint;
     name: string;
     fullName: string;
-    orgId: string;
+    organizationId: string;
     webhookSecret: string | null;
   };
   /** Error message if invalid */

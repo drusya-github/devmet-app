@@ -166,10 +166,10 @@ export class RepositoriesService {
     // Get all organizations the user belongs to
     const userOrgs = await prisma.userOrganization.findMany({
       where: { userId },
-      select: { orgId: true },
+      select: { organizationId: true },
     });
 
-    const orgIds = userOrgs.map((uo: any) => uo.orgId);
+    const orgIds = userOrgs.map((uo: any) => uo.organizationId);
 
     if (orgIds.length === 0) {
       return new Set<bigint>();
@@ -178,7 +178,7 @@ export class RepositoriesService {
     // Get all repositories in these organizations
     const repos = await prisma.repository.findMany({
       where: {
-        orgId: { in: orgIds },
+        organizationId: { in: orgIds },
       },
       select: { githubId: true },
     });
@@ -232,21 +232,21 @@ export class RepositoriesService {
    *
    * @param userId - User ID performing the action
    * @param githubRepoId - GitHub repository ID (numeric)
-   * @param orgId - Organization ID to connect the repository to
+   * @param organizationId - Organization ID to connect the repository to
    * @param ipAddress - IP address of the request (for audit logging)
    * @returns Connected repository with stats
    */
   async connectRepository(
     userId: string,
     githubRepoId: number,
-    orgId: string,
+    organizationId: string,
     ipAddress: string
   ): Promise<ConnectedRepository> {
     // Validate user has access to organization
     const userOrg = await prisma.userOrganization.findFirst({
       where: {
         userId,
-        orgId,
+        organizationId,
         role: { in: ['ADMIN', 'MEMBER'] },
       },
     });
@@ -259,7 +259,7 @@ export class RepositoriesService {
     const existing = await prisma.repository.findFirst({
       where: {
         githubId: BigInt(githubRepoId),
-        orgId,
+        organizationId,
       },
     });
 
@@ -345,7 +345,7 @@ export class RepositoriesService {
           description: repo.description,
           language: repo.language,
           isPrivate: repo.private,
-          orgId,
+          organizationId,
           syncStatus: 'PENDING',
           webhookSecret: config.github.webhookSecret, // Store webhook secret
         },
@@ -385,7 +385,7 @@ export class RepositoriesService {
       await tx.auditLog.create({
         data: {
           userId,
-          orgId,
+          organizationId,
           action: 'REPOSITORY_CONNECTED',
           resource: `repository:${newRepo.id}`,
           status: 'success',
@@ -403,7 +403,7 @@ export class RepositoriesService {
 
     // Invalidate caches
     await this.invalidateCache(userId);
-    await redis.del(`repos:connected:${orgId}`);
+    await redis.del(`repos:connected:${organizationId}`);
 
     // Queue historical import (placeholder - will be implemented in TASK-019)
     await this.queueHistoricalImport(connected.id);
@@ -412,7 +412,7 @@ export class RepositoriesService {
       userId,
       repoId: connected.id,
       repoName: connected.fullName,
-      orgId,
+      organizationId,
     });
 
     // Fetch repository with stats for response
@@ -444,7 +444,7 @@ export class RepositoriesService {
     const userOrg = await prisma.userOrganization.findFirst({
       where: {
         userId,
-        orgId: repo.orgId,
+        organizationId: repo.organizationId,
         role: { in: ['ADMIN', 'MEMBER'] },
       },
     });
@@ -505,7 +505,7 @@ export class RepositoriesService {
     await prisma.auditLog.create({
       data: {
         userId,
-        orgId: repo.orgId,
+        organizationId: repo.organizationId,
         action: 'REPOSITORY_DISCONNECTED',
         resource: `repository:${repoId}`,
         status: 'success',
@@ -518,29 +518,29 @@ export class RepositoriesService {
 
     // Invalidate caches
     await this.invalidateCache(userId);
-    await redis.del(`repos:connected:${repo.orgId}`);
+    await redis.del(`repos:connected:${repo.organizationId}`);
 
     logger.info('Repository disconnected successfully', {
       userId,
       repoId,
       repoName: repo.fullName,
-      orgId: repo.orgId,
+      organizationId: repo.organizationId,
     });
   }
 
   /**
    * List connected repositories for an organization
    *
-   * @param orgId - Organization ID
+   * @param organizationId - Organization ID
    * @param userId - User ID (for permission check)
    * @returns Array of connected repositories with stats
    */
-  async listConnectedRepositories(orgId: string, userId: string): Promise<ConnectedRepository[]> {
+  async listConnectedRepositories(organizationId: string, userId: string): Promise<ConnectedRepository[]> {
     // Check user has access to organization
     const userOrg = await prisma.userOrganization.findFirst({
       where: {
         userId,
-        orgId,
+        organizationId,
       },
     });
 
@@ -549,16 +549,16 @@ export class RepositoriesService {
     }
 
     // Check cache
-    const cacheKey = `repos:connected:${orgId}`;
+    const cacheKey = `repos:connected:${organizationId}`;
     const cached = await redis.get(cacheKey);
     if (cached) {
-      logger.debug('Returning cached connected repositories', { orgId, cacheKey });
+      logger.debug('Returning cached connected repositories', { organizationId, cacheKey });
       return JSON.parse(cached) as ConnectedRepository[];
     }
 
     // Fetch from database
     const repos = await prisma.repository.findMany({
-      where: { orgId },
+      where: { organizationId },
       include: {
         _count: {
           select: {
@@ -574,7 +574,7 @@ export class RepositoriesService {
     // Transform to response format
     const connectedRepos: ConnectedRepository[] = repos.map((repo: any) => ({
       id: repo.id,
-      orgId: repo.orgId,
+      organizationId: repo.organizationId,
       githubId: repo.githubId.toString(),
       name: repo.name,
       fullName: repo.fullName,
@@ -597,7 +597,7 @@ export class RepositoriesService {
     await redis.setex(cacheKey, 600, JSON.stringify(connectedRepos));
 
     logger.debug('Fetched connected repositories', {
-      orgId,
+      organizationId,
       count: connectedRepos.length,
     });
 
@@ -609,14 +609,14 @@ export class RepositoriesService {
    *
    * @param userId - User ID performing the action
    * @param githubRepoIds - Array of GitHub repository IDs
-   * @param orgId - Organization ID
+   * @param organizationId - Organization ID
    * @param ipAddress - IP address of the request
    * @returns Result with successful and failed connections
    */
   async connectRepositories(
     userId: string,
     githubRepoIds: number[],
-    orgId: string,
+    organizationId: string,
     ipAddress: string
   ): Promise<BulkConnectResult> {
     const result: BulkConnectResult = {
@@ -627,7 +627,7 @@ export class RepositoriesService {
     // Process repositories sequentially to avoid rate limits
     for (const githubRepoId of githubRepoIds) {
       try {
-        const repo = await this.connectRepository(userId, githubRepoId, orgId, ipAddress);
+        const repo = await this.connectRepository(userId, githubRepoId, organizationId, ipAddress);
         result.success.push(repo);
       } catch (error) {
         result.failed.push({
@@ -637,7 +637,7 @@ export class RepositoriesService {
         logger.warn('Failed to connect repository in bulk operation', {
           userId,
           githubRepoId,
-          orgId,
+          organizationId,
           error: error instanceof Error ? error.message : String(error),
         });
       }
@@ -645,7 +645,7 @@ export class RepositoriesService {
 
     logger.info('Bulk repository connection completed', {
       userId,
-      orgId,
+      organizationId,
       total: githubRepoIds.length,
       success: result.success.length,
       failed: result.failed.length,
@@ -680,7 +680,7 @@ export class RepositoriesService {
 
     return {
       id: repo.id,
-      orgId: repo.orgId,
+      organizationId: repo.organizationId,
       githubId: repo.githubId.toString(),
       name: repo.name,
       fullName: repo.fullName,

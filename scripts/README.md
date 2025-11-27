@@ -28,7 +28,10 @@ export GITHUB_TOKEN="your_token_here"
 export GITHUB_OWNER="your_github_username"
 export GITHUB_REPO="devmet-app"
 
-# Run the script
+# Method 1: Create specific tasks via command line (RECOMMENDED)
+python3 scripts/create_github_tasks.py TASK-007 TASK-008 TASK-009
+
+# Method 2: Edit TASKS_TO_CREATE list in the script, then run
 python3 scripts/create_github_tasks.py
 ```
 
@@ -39,8 +42,20 @@ python3 scripts/create_github_tasks.py
 - Progress reporting
 - Easily customizable
 
-**Customization**:
-Edit the `SPRINT_1_TASKS` array in the script to add more tasks or modify existing ones.
+**Adding New Tasks**:
+1. Add your task definition to the `ALL_TASKS` dictionary in the script
+2. Run with the task ID as an argument:
+   ```bash
+   python3 scripts/create_github_tasks.py TASK-010 TASK-011
+   ```
+
+**Example - Creating only new tasks**:
+```bash
+# Only create TASK-007, TASK-008, TASK-009 (skip already completed tasks)
+export GITHUB_TOKEN="your_token"
+export GITHUB_OWNER="your_username"
+python3 scripts/create_github_tasks.py TASK-007 TASK-008 TASK-009
+```
 
 ---
 

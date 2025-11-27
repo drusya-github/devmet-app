@@ -154,7 +154,11 @@ export function isTokenExpired(token: string): boolean {
  * Generate both access and refresh tokens for a user
  * @param payload - User payload for access token
  * @returns Object containing both access and refresh tokens
+ * 
  */
+export function generateAccessToken(payload: JWTPayload): string {
+  return signAccessToken(payload);
+}
 export function generateTokenPair(payload: JWTPayload): {
   accessToken: string;
   refreshToken: string;
